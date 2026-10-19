@@ -1,9 +1,9 @@
 # ⚡ FrontFix AI — AI-Powered Frontend Support Chatbot
 > **Team B Project:** Autonomous Diagnostics, Real-Time Console Debugging & Code Repair for Modern Web Applications.
 
-[![Status](https://img.shields.io/badge/Project_Status-Research_%26_Architecture_Ready-success?style=for-the-badge&logo=rocket)](https://github.com/AdnanAK8)
-[![Team](https://img.shields.io/badge/Assigned_Team-Team_B_(Frontend)-blue?style=for-the-badge&logo=react)](https://github.com/AdnanAK8)
-[![Tech Stack](https://img.shields.io/badge/Stack-React_|_TypeScript_|_LangChain_|_FastAPI_|_Tailwind-purple?style=for-the-badge&logo=typescript)](https://github.com/AdnanAK8)
+[![Status](https://img.shields.io/badge/Project_Status-Research_%26_Architecture_Ready-success?style=for-the-badge&logo=rocket)](https://github.com/AdnanAK8/FrontFix)
+[![Team](https://img.shields.io/badge/Assigned_Team-Team_B_(Frontend)-blue?style=for-the-badge&logo=react)](https://github.com/AdnanAK8/FrontFix)
+[![Tech Stack](https://img.shields.io/badge/Stack-React_|_TypeScript_|_LangChain_|_FastAPI_|_Tailwind-purple?style=for-the-badge&logo=typescript)](https://github.com/AdnanAK8/FrontFix)
 
 ---
 
@@ -323,6 +323,6 @@ We have included a fully functional, browser-ready interactive prototype in [`in
 ---
 
 ## 👥 Team B Contributors
-- **Lead / Developer**: Adnan Akhtar ([@AdnanAK8](https://github.com/AdnanAK8))
+- **Lead / Developer**: Adnan Akhtar ([@AdnanAK8](https://github.com/AdnanAK8/FrontFix))
 - **Role**: Architecture, RAG Pipeline Design & Frontend Diagnostics Engine
-- **Repository**: [https://github.com/AdnanAK8](https://github.com/AdnanAK8)
+- **Repository**: [https://github.com/AdnanAK8/FrontFix](https://github.com/AdnanAK8/FrontFix)
