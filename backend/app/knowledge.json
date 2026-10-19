@@ -1,0 +1,67 @@
+[
+  {
+    "id": "hydration",
+    "category": "React 19 / SSR",
+    "trigger_patterns": ["hydration failed", "server html", "did not match what was rendered on the server", "mismatch"],
+    "title": "React Hydration Mismatch (Server vs Client)",
+    "summary": "The server and client generated different HTML on initial render. This usually happens when client-only APIs (like localStorage, window.innerWidth, or new Date()) are evaluated directly in JSX before the component has mounted on the client.",
+    "file_hint": "Component.tsx",
+    "code_before": "// ❌ Broken: Evaluates different values on server vs client\nconst time = new Date().toLocaleTimeString();\nreturn <div>Current time: {time}</div>;",
+    "code_after": "// ✅ Fixed: Defer browser-dependent state until after mount\nconst [time, setTime] = useState<string | null>(null);\nuseEffect(() => {\n  setTime(new Date().toLocaleTimeString());\n}, []);\nreturn <div>Current time: {time ?? 'Loading...'}</div>;",
+    "explanation": "React SSR requires the initial client-side render to produce the exact same DOM structure as the server HTML. Wrapping the browser-specific logic in useEffect ensures it runs strictly after hydration is complete.",
+    "source_title": "React.dev — Understanding Hydration Errors",
+    "source_url": "https://react.dev/reference/react-dom/client/hydrateRoot"
+  },
+  {
+    "id": "cors",
+    "category": "Network / CORS",
+    "trigger_patterns": ["cors policy", "access-control-allow-origin", "blocked by cors", "failed to fetch"],
+    "title": "Cross-Origin Resource Sharing (CORS) Blocked",
+    "summary": "The browser blocked this fetch request because the target API server did not return an Access-Control-Allow-Origin header matching your client origin (e.g., http://localhost:3000).",
+    "file_hint": "vite.config.ts (Development Fix)",
+    "code_before": "// ❌ Failing direct cross-origin request\nfetch('https://api.example.com/v1/users');",
+    "code_after": "// ✅ Fixed: Configure local reverse proxy in vite.config.ts\nexport default defineConfig({\n  server: {\n    proxy: {\n      '/api': {\n        target: 'https://api.example.com/v1',\n        changeOrigin: true,\n        rewrite: (path) => path.replace(/^\\/api/, '')\n      }\n    }\n  }\n});\n\n// Then fetch locally without CORS blocks:\nfetch('/api/users');",
+    "explanation": "During local development, browser CORS restrictions are best bypassed using a dev-server reverse proxy. In production, ensure the backend API sends the header: Access-Control-Allow-Origin: https://yourdomain.com.",
+    "source_title": "MDN Web Docs — CORS Overview",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+  },
+  {
+    "id": "typeerror_map",
+    "category": "JavaScript / React",
+    "trigger_patterns": ["cannot read properties of undefined", "reading 'map'", ".map is not a function", "undefined (reading 'map')"],
+    "title": "TypeError: Cannot read properties of undefined (reading 'map')",
+    "summary": "You are calling .map() on a variable that is currently undefined or null. This usually occurs when rendering list state that has not finished loading from an asynchronous API request.",
+    "file_hint": "ItemList.jsx",
+    "code_before": "// ❌ Broken: items is initially undefined before API resolves\nconst [items, setItems] = useState();\nreturn <div>{items.map(item => <p key={item.id}>{item.name}</p>)}</div>;",
+    "code_after": "// ✅ Fixed: Initialize with empty array and use optional chaining\nconst [items, setItems] = useState([]);\nif (!items || items.length === 0) return <p>Loading items...</p>;\nreturn <div>{items?.map(item => <p key={item.id}>{item.name}</p>)}</div>;",
+    "explanation": "Always provide a safe default value (such as an empty array []) when declaring state that will hold a collection. Use optional chaining (?.) and explicit loading states to prevent render crashes.",
+    "source_title": "MDN Web Docs — Optional Chaining (?.)",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining"
+  },
+  {
+    "id": "zindex",
+    "category": "CSS / Layout",
+    "trigger_patterns": ["z-index", "stacking context", "behind", "modal", "overlay"],
+    "title": "CSS Z-Index Stacking Context Trap",
+    "summary": "Even with z-index: 9999, the element renders behind a sibling. An ancestor element has a CSS property (like opacity < 1, transform, or filter) that creates a local Stacking Context, trapping child z-index values.",
+    "file_hint": "Modal.tsx",
+    "code_before": "// ❌ Broken: Modal trapped in parent's local stacking context\nreturn <div className=\"modal z-[9999]\">{content}</div>;",
+    "code_after": "// ✅ Fixed: Use React Portal to escape local context and render at <body>\nimport { createPortal } from 'react-dom';\nexport function Modal({ children }) {\n  if (typeof document === 'undefined') return null;\n  return createPortal(\n    <div className=\"fixed inset-0 z-50 bg-black/50 backdrop-blur\">{children}</div>,\n    document.body\n  );\n}",
+    "explanation": "In CSS, a child cannot escape its parent's stacking context. Using ReactDOM.createPortal mounts the overlay directly into <body>, allowing high z-index values to work correctly across the entire viewport.",
+    "source_title": "MDN Web Docs — Stacking Context",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context"
+  },
+  {
+    "id": "re_render",
+    "category": "React Hooks",
+    "trigger_patterns": ["too many re-renders", "limits the number of renders to prevent an infinite loop", "infinite loop"],
+    "title": "Too Many Re-renders: Infinite Render Loop",
+    "summary": "A state update function (setState) was called synchronously inside the component body during render. React immediately attempts to re-render, creating an unbounded loop that crashes the app.",
+    "file_hint": "UserProfile.tsx",
+    "code_before": "// ❌ Broken: setState called directly in render body\nfunction UserProfile({ user }) {\n  const [active, setActive] = useState(false);\n  if (user.isOnline) setActive(true);\n  return <div>{user.name}</div>;\n}",
+    "code_after": "// ✅ Fixed: Calculate derived state or wrap in useEffect\nfunction UserProfile({ user }) {\n  // Method A: Derived state (simplest & best)\n  const isActive = Boolean(user.isOnline);\n  \n  // Method B: If side-effect is strictly needed:\n  const [active, setActive] = useState(false);\n  useEffect(() => {\n    setActive(Boolean(user.isOnline));\n  }, [user.isOnline]);\n  \n  return <div>{user.name}</div>;\n}",
+    "explanation": "Never update state unconditionally inside the component body. Either compute the value on the fly as derived state, or wrap the update inside a useEffect hook with clear primitive dependencies.",
+    "source_title": "React.dev — Lifecycle of Reactive Effects",
+    "source_url": "https://react.dev/learn/lifecycle-of-reactive-effects"
+  }
+]

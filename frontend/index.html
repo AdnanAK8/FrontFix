@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrontFix — Frontend Issue Resolution Assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Minimal Header -->
+  <header class="header">
+    <div class="header-container">
+      <a href="#" class="brand">
+        <div class="brand-icon">⚡</div>
+        <span class="brand-name">FrontFix</span>
+        <span class="brand-badge">Team B</span>
+      </a>
+
+      <div class="header-actions">
+        <div class="status-pill">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+        <button class="icon-btn" onclick="clearConversation()" title="Clear chat history">
+          Clear
+        </button>
+        <a href="https://github.com/AdnanAK8/FrontFix" target="_blank" class="icon-btn">
+          GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Chat Content -->
+  <main class="main" id="main-content">
+    
+    <!-- Empty State Hero -->
+    <div class="hero" id="hero-view">
+      <h1>What frontend issue can I resolve?</h1>
+      <p>Paste a browser console error, React stack trace, or ask how to troubleshoot HTML, CSS, JavaScript, and API integration bugs.</p>
+
+      <div class="quick-prompts-label">Try a common scenario</div>
+      <div class="quick-prompts">
+        <button class="prompt-chip" onclick="handlePreset('hydration')">
+          React Hydration Mismatch
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('cors')">
+          CORS Network Block
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('typeerror')">
+          TypeError: undefined (.map)
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('zindex')">
+          CSS Z-Index Stacking Trap
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('re_render')">
+          Too Many Re-renders
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Message Stream (hidden by default) -->
+    <div class="chat-stream" id="chat-stream" style="display: none;"></div>
+
+  </main>
+
+  <!-- Minimal Floating Input Dock -->
+  <div class="input-dock">
+    <div class="input-container">
+      <textarea 
+        id="prompt-input" 
+        class="input-textarea" 
+        rows="1" 
+        placeholder="Paste a frontend error or describe the bug... (Enter to send, Shift+Enter for new line)"
+      ></textarea>
+      
+      <div class="input-toolbar">
+        <label class="privacy-toggle" title="Automatically masks JWT tokens, API keys and credentials before sending">
+          <input type="checkbox" id="privacy-checkbox" checked>
+          <span>Privacy Shield Active</span>
+        </label>
+        
+        <button id="send-btn" class="send-btn" onclick="submitMessage()">
+          <span>Diagnose</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

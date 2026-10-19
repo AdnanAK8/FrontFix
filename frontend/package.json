@@ -1,0 +1,11 @@
+{
+  "name": "frontfix-frontend",
+  "version": "2.0.0",
+  "description": "Minimal, clean UI for FrontFix AI - Frontend Support Chatbot (Team B)",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "author": "Adnan Akhtar (AdnanAK8)",
+  "license": "MIT"
+}
