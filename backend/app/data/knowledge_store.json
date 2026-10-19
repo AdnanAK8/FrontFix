@@ -1,0 +1,56 @@
+[
+  {
+    "id": "react-ssr-01",
+    "source": "React.dev 19",
+    "category": "REACT 19 / SSR",
+    "title": "Hydration Mismatches & Client-Only Value Evaluation",
+    "keywords": ["hydration", "ssr", "nextjs", "window", "localstorage", "mismatch"],
+    "content": "React components rendered on the server must produce an identical initial HTML structure to what is mounted on the client. Evaluating non-deterministic values like window, document, localStorage, or new Date().toLocaleTimeString() directly in JSX triggers React Error #418 (Hydration Failed). Solution: Wrap browser-only reads in useEffect or use dynamic import with ssr: false.",
+    "doc_url": "https://react.dev/reference/react-dom/client/hydrateRoot"
+  },
+  {
+    "id": "cors-preflight-02",
+    "source": "MDN Web Docs",
+    "category": "NETWORK / CORS",
+    "title": "Cross-Origin Resource Sharing (CORS) & Preflight Options",
+    "keywords": ["cors", "access-control-allow-origin", "options", "preflight", "fetch"],
+    "content": "CORS is a browser security protocol that prevents malicious scripts on one origin from making unauthorized API requests to a different origin. When requests include custom headers (e.g. Authorization Bearer) or methods other than GET/POST/HEAD, the browser issues a preflight HTTP OPTIONS request. The server must return 200/204 with Access-Control-Allow-Origin, Access-Control-Allow-Methods, and Access-Control-Allow-Headers.",
+    "doc_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+  },
+  {
+    "id": "css-stacking-03",
+    "source": "W3C CSS Specifications",
+    "category": "CSS / LAYOUT",
+    "title": "CSS Stacking Context Rules & Z-Index Invalidation",
+    "keywords": ["z-index", "stacking context", "transform", "opacity", "modal", "overflow"],
+    "content": "A local Stacking Context is formed by any element with opacity < 1, transform != none, filter != none, or position: fixed. Once formed, all child elements are contained inside that local layer; child z-indexes cannot escape to compete with sibling elements outside the stacking context. Solution: Use React Portals (createPortal) to render modals directly under document.body.",
+    "doc_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context"
+  },
+  {
+    "id": "react-re-render-04",
+    "source": "React.dev 19",
+    "category": "REACT HOOKS",
+    "title": "Too Many Re-renders: Synchronous setState in Render Body",
+    "keywords": ["too many re-renders", "infinite loop", "setstate", "useeffect", "dispatch"],
+    "content": "Calling a state setter (like setCount) synchronously inside the body of a component function triggers an immediate re-render before React can finish the current render cycle, causing an infinite loop. Solution: Either calculate derived state as a simple variable, or move the setState call inside a useEffect hook or event handler.",
+    "doc_url": "https://react.dev/learn/lifecycle-of-reactive-effects"
+  },
+  {
+    "id": "js-typeerror-map-05",
+    "source": "MDN Web Docs",
+    "category": "JAVASCRIPT / REACT",
+    "title": "Optional Chaining & Nullish Coalescing for Async Collections",
+    "keywords": ["typeerror", "cannot read properties of undefined", "map", "optional chaining", "nullish"],
+    "content": "In asynchronous UI rendering, collections retrieved via API (like products or users) are initially undefined before the network promise resolves. Calling .map() on undefined causes an uncaught TypeError crash. Solution: Initialize state with an empty array (useState([])), or use optional chaining (products?.map(...)) with a loading skeleton fallback.",
+    "doc_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining"
+  },
+  {
+    "id": "react-cleanup-06",
+    "source": "React.dev 19",
+    "category": "REACT HOOKS",
+    "title": "Asynchronous Memory Leaks & Cleanup Functions",
+    "keywords": ["memory leak", "unmounted component", "cleanup", "abortcontroller", "subscription"],
+    "content": "When a component unmounts while an asynchronous operation is in flight, setting state on the unmounted component wastes resources and triggers React warnings. Solution: Use an AbortController in fetch or a boolean flag (let isMounted = true) that is toggled to false inside the useEffect return cleanup function.",
+    "doc_url": "https://react.dev/learn/synchronizing-with-effects#how-to-handle-the-effect-firing-twice-in-development"
+  }
+]

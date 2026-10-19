@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "FrontFix AI — Frontend DevTools Diagnostic Assistant",
+  "version": "1.0.0",
+  "description": "Team B: Automatic browser console error interception & AI-powered code diff diagnostics",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FrontFix AI Diagnostics"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

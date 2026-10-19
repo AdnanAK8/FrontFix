@@ -1,0 +1,92 @@
+{
+  "hydration": {
+    "key": "hydration",
+    "domain": "REACT 19 / SSR",
+    "severity": "CRITICAL",
+    "title": "React Hydration Mismatch (Server vs Client DOM)",
+    "raw_sample": "Error: Hydration failed because the initial UI does not match what was rendered on the server.\nWarning: Expected server HTML to contain a matching <span> in <div>.\n  at Page (app/dashboard/page.tsx:28)\n  at RenderedServerComponent",
+    "root_cause": "The component evaluated browser-dependent APIs (such as window.innerWidth, localStorage, or new Date()) directly during initial render. The server generated HTML with fallback content, while client hydration rendered dynamic browser values, corrupting the DOM reconciliation tree.",
+    "file_name": "app/dashboard/page.tsx",
+    "code_diff": "  export default function Dashboard() {\n-   // ❌ Broken: Executed on server and client with different outputs\n-   const currentTime = new Date().toLocaleTimeString();\n-   return <div>Current Time: <span>{currentTime}</span></div>;\n+   // ✅ Fixed: Defer client-only state until after component mounts\n+   const [currentTime, setCurrentTime] = useState<string | null>(null);\n+   useEffect(() => {\n+     setCurrentTime(new Date().toLocaleTimeString());\n+   }, []);\n+   return <div>Current Time: <span>{currentTime ?? 'Loading...'}</span></div>;\n  }",
+    "best_practice": "Always defer browser-dependent state reads until after initial mount using useEffect or dynamic(..., { ssr: false }) in Next.js.",
+    "doc_reference": {
+      "title": "React Docs — Understanding Hydration Errors",
+      "url": "https://react.dev/reference/react-dom/client/hydrateRoot"
+    }
+  },
+  "cors": {
+    "key": "cors",
+    "domain": "NETWORK / CORS",
+    "severity": "HIGH",
+    "title": "Cross-Origin Resource Sharing (CORS) Blocked",
+    "raw_sample": "Access to fetch at 'https://api.backend.com/v1/users' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.\nTypeError: Failed to fetch at fetchUsers (api.ts:18)",
+    "root_cause": "The browser blocked cross-origin communication because the target API server did not return the Access-Control-Allow-Origin header acknowledging origin http://localhost:3000.",
+    "file_name": "vite.config.ts (Development Proxy Fix)",
+    "code_diff": "  export default defineConfig({\n    plugins: [react()],\n+   // ✅ Fix: Route through local development proxy to bypass CORS\n+   server: {\n+     proxy: {\n+       '/api': {\n+         target: 'https://api.backend.com/v1',\n+         changeOrigin: true,\n+         rewrite: (path) => path.replace(/^\\/api/, '')\n+       }\n+     }\n+   }\n  });",
+    "best_practice": "For local development, configure a Vite or Next.js dev server proxy. For production, whitelist the frontend domain in backend CORS middleware headers.",
+    "doc_reference": {
+      "title": "MDN Web Docs — CORS Explained",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+    }
+  },
+  "typeerror": {
+    "key": "typeerror",
+    "domain": "JAVASCRIPT / REACT",
+    "severity": "HIGH",
+    "title": "TypeError: Cannot read properties of undefined (reading .map)",
+    "raw_sample": "Uncaught TypeError: Cannot read properties of undefined (reading 'map')\n    at ProductCatalog (ProductCatalog.jsx:14:24)\n    at renderWithHooks (react-dom.development.js:15486)",
+    "root_cause": "The component evaluated products.map(...) before asynchronous network data finished loading. Because the initial state was undefined, evaluating .map threw an uncaught TypeError.",
+    "file_name": "ProductCatalog.jsx",
+    "code_diff": "  function ProductCatalog({ fetchEndpoint }) {\n-   const [products, setProducts] = useState(); // ❌ Defaults to undefined\n-   return <div>{products.map(p => <ProductCard key={p.id} item={p} />)}</div>;\n+   // ✅ Fixed: Initialize with empty array and use optional chaining + fallback\n+   const [products, setProducts] = useState([]);\n+   if (!products || products.length === 0) return <SkeletonLoader />;\n+   return <div>{products?.map(p => <ProductCard key={p.id} item={p} />)}</div>;\n  }",
+    "best_practice": "Always initialize collection state with an empty array ([]), and guard array methods with optional chaining (?.) and loading boundaries.",
+    "doc_reference": {
+      "title": "MDN Web Docs — Optional Chaining Operator",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining"
+    }
+  },
+  "zindex": {
+    "key": "zindex",
+    "domain": "CSS / LAYOUT",
+    "severity": "MEDIUM",
+    "title": "CSS Stacking Context Trap (Z-Index Failure)",
+    "raw_sample": "CSS Bug Report: Modal overlay (.modal-backdrop) has z-index: 999999, but still renders behind adjacent card header (.profile-card) with z-index: 10.",
+    "root_cause": "The modal container has an ancestor element styled with transform, filter, or opacity < 1. In CSS specifications, this forces creation of a local Stacking Context, permanently locking child z-indexes beneath sibling parent stacking contexts.",
+    "file_name": "Modal.tsx",
+    "code_diff": "  // ❌ Broken: Modal rendered inside stacking context parent\n- return <div className=\"modal-overlay z-[99999]\">{children}</div>;\n+ // ✅ Fixed: Use React Portal to escape local stacking context and render at <body>\n+ import { createPortal } from 'react-dom';\n+ export function Modal({ children }) {\n+   if (typeof document === 'undefined') return null;\n+   return createPortal(\n+     <div className=\"fixed inset-0 z-50 bg-black/60 backdrop-blur\">{children}</div>,\n+     document.body\n+   );\n+ }",
+    "best_practice": "Render floating elements (Modals, Tooltips, Dropdowns) via ReactDOM.createPortal directly on document.body to isolate them from component hierarchy stacking contexts.",
+    "doc_reference": {
+      "title": "MDN Web Docs — Stacking Context",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context"
+    }
+  },
+  "loop": {
+    "key": "loop",
+    "domain": "REACT HOOKS",
+    "severity": "CRITICAL",
+    "title": "Infinite Re-render Loop (Synchronous setState in Body)",
+    "raw_sample": "Error: Too many re-renders. React limits the number of renders to prevent an infinite loop.\n    at checkForNestedUpdates (react-dom.development.js:27389)\n    at scheduleUpdateOnFiber (react-dom.development.js:25503)\n    at dispatchSetState (react-dom.development.js:17527)\n    at UserProfile (UserProfile.tsx:12:5)",
+    "root_cause": "A state dispatch function was called synchronously within the component render function or inside a useEffect with an un-memoized object dependency that changes identity on every pass.",
+    "file_name": "UserProfile.tsx",
+    "code_diff": "  export function UserProfile({ user }) {\n    const [status, setStatus] = useState('idle');\n-   // ❌ Broken: setState invoked directly in component body on every render\n-   if (user.isVerified) setStatus('verified');\n+   // ✅ Fixed: Derive state or wrap in useEffect with explicit dependency\n+   useEffect(() => {\n+     if (user.isVerified) setStatus('verified');\n+   }, [user.isVerified]);\n  }",
+    "best_practice": "Never invoke state updaters synchronously in the component render body. Use derived variables or useEffect with guarded primitive dependencies.",
+    "doc_reference": {
+      "title": "React Docs — Lifecycle of Reactive Effects",
+      "url": "https://react.dev/learn/lifecycle-of-reactive-effects"
+    }
+  },
+  "memory_leak": {
+    "key": "memory_leak",
+    "domain": "REACT HOOKS",
+    "severity": "HIGH",
+    "title": "Unmounted Component State Update (Missing useEffect Cleanup)",
+    "raw_sample": "Warning: Can't perform a React state update on an unmounted component. This is a no-op, but it indicates a memory leak in your application. To fix, cancel all subscriptions and asynchronous tasks in a useEffect cleanup function.",
+    "root_cause": "An asynchronous promise (like fetch or setTimeout) resolved and attempted to call setState after the user navigated away and unmounted the component.",
+    "file_name": "UserProfile.tsx",
+    "code_diff": "  useEffect(() => {\n+   let isMounted = true;\n    fetchUserData(id).then(data => {\n+     if (isMounted) setUser(data);\n    });\n+   return () => { isMounted = false; };\n  }, [id]);",
+    "best_practice": "Always provide cleanup functions in useEffect or use modern AbortController signals to abort in-flight fetch requests upon component unmount.",
+    "doc_reference": {
+      "title": "React Docs — Synchronizing with Effects",
+      "url": "https://react.dev/learn/synchronizing-with-effects#how-to-handle-the-effect-firing-twice-in-development"
+    }
+  }
+}

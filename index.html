@@ -148,6 +148,26 @@
             </div>
           </div>
         </div>
+
+        <!-- LIVE ERROR SIMULATOR BAR -->
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center space-x-2 text-slate-300">
+            <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[10px] font-bold uppercase tracking-wider">Live Sandbox</span>
+            <span>Trigger real browser error to watch auto-interception:</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="triggerRealTypeError()" class="px-2.5 py-1 rounded bg-rose-900/40 hover:bg-rose-900/60 text-rose-200 border border-rose-700/50 transition">
+              💥 Trigger window.TypeError
+            </button>
+            <button onclick="triggerRealFailedFetch()" class="px-2.5 py-1 rounded bg-purple-900/40 hover:bg-purple-900/60 text-purple-200 border border-purple-700/50 transition">
+              🌐 Trigger Failed Fetch (CORS)
+            </button>
+            <span id="backend-status-pill" class="px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1.5">
+              <span id="backend-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span id="backend-status-text">Checking Backend API...</span>
+            </span>
+          </div>
+        </div>
       </div>
 
       <!-- WORKBENCH GRID -->
@@ -911,9 +931,55 @@ export default defineConfig({
       });
     }
 
+    // Live Backend API Integration
+    const BACKEND_URL = 'http://127.0.0.1:8000';
+    let isBackendOnline = false;
+
+    async function checkBackendStatus() {
+      const dot = document.getElementById('backend-status-dot');
+      const text = document.getElementById('backend-status-text');
+      try {
+        const res = await fetch(`${BACKEND_URL}/`, { method: 'GET' });
+        if (res.ok) {
+          isBackendOnline = true;
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+          text.innerText = 'FastAPI Backend: Online';
+        } else {
+          throw new Error();
+        }
+      } catch (e) {
+        isBackendOnline = false;
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-slate-400';
+        text.innerText = 'Offline Client Engine (FastAPI Ready)';
+      }
+    }
+
+    // Live Browser Error Triggers
+    function triggerRealTypeError() {
+      try {
+        // Deliberately access property on undefined to produce real browser error
+        const emptyList = undefined;
+        emptyList.map(item => item.id);
+      } catch (err) {
+        document.getElementById('error-input').value = `${err.name}: ${err.message}\n${err.stack || ''}`;
+        diagnoseIssue();
+      }
+    }
+
+    function triggerRealFailedFetch() {
+      const badUrl = 'https://invalid-cors-target-example.org/api/v1/data';
+      fetch(badUrl, { mode: 'cors' })
+        .catch(err => {
+          document.getElementById('error-input').value = `Access to fetch at '${badUrl}' from origin '${window.location.origin}' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.\nTypeError: Failed to fetch\n  at triggerRealFailedFetch (index.html:950)`;
+          diagnoseIssue();
+        });
+    }
+
     // Auto load hydration preset for demo on page load
     window.addEventListener('DOMContentLoaded', () => {
       loadPreset('hydration');
+      checkBackendStatus();
+      setInterval(checkBackendStatus, 5000);
     });
   </script>
 </body>
