@@ -17,7 +17,6 @@ export default function Header({ online, onToggleSidebar, onNewChat }) {
         <div className="header-titles">
           <div className="header-title-row">
             <span className="header-title">FrontendFix AI</span>
-            <span className="header-badge">Team B - Frontend</span>
           </div>
           <span className="header-subtitle">AI Support for JavaScript, React, CSS, HTML &amp; APIs</span>
         </div>

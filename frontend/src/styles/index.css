@@ -4,8 +4,8 @@
    ========================================================= */
 
 :root {
-  --sidebar-bg: #f7f7f8;
-  --sidebar-border: #e5e7eb;
+  --sidebar-bg: #f0f7f3;
+  --sidebar-border: #d9e9df;
   --sidebar-text: #252b28;
   --sidebar-subtext: #727b76;
   --sidebar-btn-bg: #ffffff;
@@ -17,17 +17,17 @@
   --header-badge-bg: #edf5ef;
   --header-badge-text: #28634f;
 
-  --body-bg: #ffffff;
+  --body-bg: #fbfcff;
   --body-card: #ffffff;
-  --card-border: #e5e9e6;
-  --card-hover-border: #b7d3c1;
+  --card-border: #dce5ee;
+  --card-hover-border: #9fc9b0;
 
   --text-main: #252b28;
   --text-muted: #626c66;
   --text-sub: #7c8680;
 
-  --dock-bg: #ffffff;
-  --dock-border: #dfe5e1;
+  --dock-bg: #f4fbf6;
+  --dock-border: #b9ddc6;
   --dock-upload-bg: #ffffff;
   --dock-send-bg: #286b54;
   --dock-send-hover: #205640;
@@ -70,7 +70,7 @@ html, body {
 .sidebar {
   width: 260px;
   flex: 0 0 260px;
-  background-color: var(--sidebar-bg);
+  background: linear-gradient(180deg, #f2f8f4 0%, #edf5f0 100%);
   border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
@@ -241,7 +241,8 @@ html, body {
   justify-content: space-between;
   flex-shrink: 0;
   color: var(--header-text);
-  border-bottom: 1px solid #eef0ee;
+  border-bottom: 1px solid #dcebe1;
+  box-shadow: 0 2px 12px rgba(35, 92, 67, 0.04);
 }
 
 .header-left {
@@ -277,7 +278,7 @@ html, body {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #edf5ef;
+  background: linear-gradient(145deg, #d9f5e4, #e5efff);
   color: #286b54;
   display: flex;
   align-items: center;
@@ -399,6 +400,10 @@ html, body {
   flex-direction: column;
   align-items: center;
   position: relative;
+  background:
+    radial-gradient(ellipse at 18% 20%, rgba(204, 238, 219, 0.32), transparent 38%),
+    radial-gradient(ellipse at 84% 38%, rgba(216, 231, 255, 0.3), transparent 36%),
+    var(--body-bg);
 }
 
 .hero-view {
@@ -422,20 +427,20 @@ html, body {
   width: 64px;
   height: 64px;
   border-radius: 18px;
-  background: #357766;
+  background: linear-gradient(145deg, #42a77e 5%, #28735e 58%, #4659a8 130%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 18px;
-  box-shadow: 0 8px 24px rgba(35, 100, 80, 0.12);
+  box-shadow: 0 10px 26px rgba(46, 125, 91, 0.24);
 }
 
 .hero-pill-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #276956;
-  background: #d4ebd9;
-  border: 1px solid #bfdfc6;
+  color: #216548;
+  background: linear-gradient(100deg, #def5e5, #e4f0ff);
+  border: 1px solid #c7e6d1;
   padding: 3px 12px;
   border-radius: 999px;
   margin-bottom: 12px;
@@ -475,7 +480,7 @@ html, body {
 }
 
 .suggestion-card {
-  background: var(--body-card);
+  background: linear-gradient(145deg, #ffffff 55%, #f8fcf9);
   border: 1px solid var(--card-border);
   border-radius: 14px;
   padding: 16px;
@@ -488,8 +493,29 @@ html, body {
   box-shadow: 0 1px 2px rgba(25, 45, 35, 0.03);
 }
 
+.suggestion-card:has(.icon-flame) {
+  background: linear-gradient(130deg, #ffffff 12%, #effbf3 100%);
+  border-color: #c5e8d0;
+}
+
+.suggestion-card:has(.icon-globe) {
+  background: linear-gradient(130deg, #ffffff 12%, #edf7ff 100%);
+  border-color: #c5e1f5;
+}
+
+.suggestion-card:has(.icon-layout) {
+  background: linear-gradient(130deg, #ffffff 12%, #f0f3ff 100%);
+  border-color: #d2dcfa;
+}
+
+.suggestion-card:has(.icon-code) {
+  background: linear-gradient(130deg, #ffffff 12%, #f8f0ff 100%);
+  border-color: #e6d2f8;
+}
+
 .suggestion-card:hover {
   border-color: var(--card-hover-border);
+  background: linear-gradient(145deg, #ffffff 35%, #f0f8f2);
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(25, 45, 35, 0.07);
 }
@@ -899,7 +925,7 @@ html, body {
   border: 1px solid var(--dock-border);
   border-radius: 24px;
   padding: 12px 14px 9px;
-  box-shadow: 0 4px 18px rgba(25, 45, 35, 0.08), 0 1px 3px rgba(25, 45, 35, 0.04);
+  box-shadow: 0 8px 24px rgba(37, 91, 62, 0.12), 0 1px 3px rgba(25, 45, 35, 0.04);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -915,9 +941,9 @@ html, body {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--dock-upload-bg);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: #4b6b5b;
+  background: #e9f6ed;
+  border: 1px solid #d1e8d8;
+  color: #286b54;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -954,7 +980,7 @@ html, body {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--dock-send-bg);
+  background: linear-gradient(145deg, #3b9b71, #286b54);
   color: #ffffff;
   border: none;
   display: flex;
@@ -963,7 +989,7 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(35, 85, 70, 0.2);
+  box-shadow: 0 3px 9px rgba(35, 105, 77, 0.3);
 }
 
 .dock-send-btn:hover:not(:disabled) {
@@ -995,7 +1021,7 @@ html, body {
 }
 
 .dock-privacy input {
-  accent-color: #2d705c;
+  accent-color: #286b54;
 }
 
 .dock-warning {
