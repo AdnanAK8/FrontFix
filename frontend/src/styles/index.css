@@ -108,11 +108,12 @@ html, body {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: #327663;
+  background: #286b54;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .sidebar-brand-text {
@@ -168,16 +169,16 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
   color: var(--sidebar-text);
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .history-item:hover, .history-item.active {
-  background: #e9ecea;
+  background: #e9eceb;
 }
 
 .history-item-left {
@@ -234,7 +235,7 @@ html, body {
 .top-header {
   height: 64px;
   background-color: var(--header-bg);
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -247,6 +248,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .hamburger-btn {
@@ -319,6 +321,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .status-pill-offline {
@@ -391,7 +394,7 @@ html, body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 24px 20px;
+  padding: 32px 24px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -399,9 +402,10 @@ html, body {
 }
 
 .hero-view {
-  max-width: 680px;
+  max-width: 720px;
   width: 100%;
   margin: auto;
+  padding: 20px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -422,7 +426,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   box-shadow: 0 8px 24px rgba(35, 100, 80, 0.12);
 }
 
@@ -438,7 +442,7 @@ html, body {
 }
 
 .hero-main-title {
-  font-size: 32px;
+  font-size: clamp(28px, 4vw, 36px);
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-main);
@@ -446,8 +450,8 @@ html, body {
 }
 
 .hero-description {
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.65;
   color: var(--text-muted);
   max-width: 530px;
   margin-bottom: 26px;
@@ -473,8 +477,8 @@ html, body {
 .suggestion-card {
   background: var(--body-card);
   border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 16px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -486,8 +490,8 @@ html, body {
 
 .suggestion-card:hover {
   border-color: var(--card-hover-border);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(35, 75, 60, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(25, 45, 35, 0.07);
 }
 
 .card-icon-wrap {
@@ -537,7 +541,7 @@ html, body {
 
 .chat-stream {
   width: 100%;
-  max-width: 760px;
+  max-width: 800px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -882,7 +886,7 @@ html, body {
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  padding: 0 20px 16px;
+  padding: 0 24px 18px;
   pointer-events: none;
   z-index: 25;
 }
@@ -943,7 +947,7 @@ html, body {
 }
 
 .dock-textarea::placeholder {
-  color: #688a7c;
+  color: #818b85;
 }
 
 .dock-send-btn {
@@ -978,7 +982,7 @@ html, body {
   justify-content: space-between;
   gap: 10px;
   font-size: 10px;
-  color: #557567;
+  color: #737d77;
   padding: 0 4px;
 }
 
@@ -1024,7 +1028,7 @@ html, body {
   position: fixed;
   top: 70px;
   right: 20px;
-  background: #1c5646;
+  background: #28634f;
   color: #ffffff;
   padding: 10px 16px;
   border-radius: 10px;
@@ -1100,11 +1104,11 @@ html, body {
   }
 
   .input-dock-wrapper {
-    padding: 0 12px 12px;
+    padding: 0 14px 12px;
   }
 
   .chat-viewport {
-    padding: 20px 14px;
+    padding: 18px 14px 22px;
   }
 }
 
@@ -1113,6 +1117,10 @@ html, body {
     height: 60px;
     padding: 0 10px;
     gap: 8px;
+  }
+
+  .header-logo-icon {
+    display: none;
   }
 
   .sidebar {
@@ -1173,19 +1181,21 @@ html, body {
   }
 
   .hero-view {
-    margin: 8px auto;
+    margin: 0 auto;
+    padding: 8px 0 18px;
   }
 
   .hero-main-title {
-    font-size: 28px;
+    font-size: 30px;
   }
 
   .hero-description {
     margin-bottom: 20px;
+    font-size: 13px;
   }
 
   .suggestion-card {
-    padding: 12px;
+    padding: 13px;
   }
 
   .input-dock-card {
