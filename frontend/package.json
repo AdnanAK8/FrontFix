@@ -1,10 +1,21 @@
 {
   "name": "frontfix-frontend",
-  "version": "2.0.0",
-  "description": "Minimal, clean UI for FrontFix AI - Frontend Support Chatbot (Team B)",
-  "main": "index.html",
+  "version": "3.0.0",
+  "private": true,
+  "description": "FrontendFix AI - Frontend Support Chatbot (Team B), React version",
+  "type": "module",
   "scripts": {
-    "start": "npx serve ."
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
   },
   "author": "Adnan Akhtar (AdnanAK8)",
   "license": "MIT"
