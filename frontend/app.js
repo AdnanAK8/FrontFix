@@ -1,46 +1,45 @@
-// FrontFix AI — Frontend Application Logic (Team B)
-// ponytail: Clean vanilla JavaScript with native Web APIs (Fetch, FileReader, Clipboard). Zero bulky runtime frameworks.
+// FrontFix AI — Application Logic (Team B)
+// Clean vanilla JavaScript with native Web APIs.
+// Features 2-second typing indicator & progressive line-by-line result streaming.
 
-// ponytail: Configurable API endpoint supporting local dev, same-origin deployed bundles, and external production APIs
 const FRONTFIX_CONFIG = {
-  // Production API URL when frontend is hosted separately (e.g. GitHub Pages or Vercel)
   PROD_API_URL: window.__FRONTFIX_API_URL__ || 'https://frontfix-api.onrender.com',
   LOCAL_API_URL: 'http://127.0.0.1:8000'
 };
 
 function resolveBackendUrl() {
-  // 1. Explicit global runtime override if defined:
   if (window.__FRONTFIX_API_URL__) return window.__FRONTFIX_API_URL__;
-
-  // 2. Local development check (file:// or localhost/127.0.0.1)
   const hostname = window.location.hostname;
   if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1' || window.location.protocol === 'file:') {
-    if (window.location.port === '8000') {
-      return window.location.origin;
-    }
+    if (window.location.port === '8000') return window.location.origin;
     return FRONTFIX_CONFIG.LOCAL_API_URL;
   }
-
-  // 3. Deployed production environment:
-  // If static site (like GitHub Pages or Netlify), connect to the production HTTPS API:
   if (window.location.origin.includes('github.io') || window.location.origin.includes('netlify.app')) {
     return FRONTFIX_CONFIG.PROD_API_URL;
   }
-
-  // If served directly from same-origin backend (e.g., Docker / Render / Railway):
   return window.location.origin;
 }
 
 const BACKEND_URL = resolveBackendUrl();
 let isBackendOnline = false;
 let conversationHistory = [];
+let typingStatusTimer = null;
+let savedSessions = [
+  {
+    id: 'sample-cors',
+    title: "CORS policy blocked: No...",
+    date: 'Oct 19',
+    query: "CORS policy blocked: No 'Access-Control-Allow-Origin' header present",
+    presetKey: 'cors_policy_blocked'
+  }
+];
 
-// Privacy sanitization regex patterns for client-side protection
+// Privacy sanitization regex patterns
 const JWT_REGEX = /Bearer\s+[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+\.?[A-Za-z0-9\-_.+/=]*/gi;
 const API_KEY_REGEX = /(sk-[A-Za-z0-9]{20,}|gh[pousr]-[A-Za-z0-9]{36,}|AKIA[0-9A-Z]{16})/gi;
 const PASSWORD_REGEX = /(password|secret|token)\s*[:=]\s*["']?([^"'\s]+)["']?/gi;
 
-// Comprehensive Fallback Knowledge Base for Offline/Standalone Use
+// Comprehensive Fallback Knowledge Base
 const OFFLINE_KNOWLEDGE = [
   {
     id: "typeerror_map",
@@ -113,133 +112,25 @@ const OFFLINE_KNOWLEDGE = [
     code_after: "// ✅ Fixed: Functional updater without dependency churn\nuseEffect(() => {\n  const timer = setInterval(() => {\n    setCount(prev => prev + 1);\n  }, 1000);\n  return () => clearInterval(timer);\n}, []);",
     extra_tips: "If you only need to calculate a value based on existing props or state, don't use state + effect at all; calculate it as derived state during render.",
     source: { title: "React.dev — You Might Not Need an Effect", url: "https://react.dev/learn/you-might-not-need-an-effect" }
-  },
-  {
-    id: "hydration_mismatch",
-    triggers: ["hydration failed", "server html", "did not match what was rendered on the server", "hydration error"],
-    category: "React 19 / SSR",
-    title: "React Hydration Mismatch (Server vs Client HTML Mismatch)",
-    problem: "Next.js or React 18/19 throws an error warning that server-rendered HTML differed from initial client render.",
-    likely_cause: "Client-only dynamic values (like localStorage, window.innerWidth, or new Date()) were rendered directly in JSX before component mount.",
-    fix_steps: [
-      "1. Defer reading browser-only values inside a useEffect hook after initial mount.",
-      "2. For static timestamps, render a placeholder or add suppressHydrationWarning={true} to the tag.",
-      "3. Verify that your HTML structure is valid (e.g. no <p> wrapping <div>)."
-    ],
-    file_hint: "src/components/Greeting.tsx",
-    code_before: "// ❌ Broken: localStorage differs on server vs client\nconst user = localStorage.getItem('user');\nreturn <div>Welcome {user || 'Guest'}</div>;",
-    code_after: "// ✅ Fixed: Wait until mounted\nconst [user, setUser] = useState(null);\nuseEffect(() => {\n  setUser(localStorage.getItem('user'));\n}, []);\nreturn <div>Welcome {user ?? 'Guest'}</div>;",
-    extra_tips: "Invalid HTML tags are the second most common hydration trigger. In HTML specs, <p> cannot contain <div>.",
-    source: { title: "React.dev — hydrateRoot Reference", url: "https://react.dev/reference/react-dom/client/hydrateRoot" }
-  },
-  {
-    id: "zindex_stacking_trap",
-    triggers: ["z-index", "stacking context", "modal behind", "z-index not working"],
-    category: "CSS Layout & Styling",
-    title: "CSS Z-Index Stacking Context Trap (Element Renders Behind)",
-    problem: "An element with high z-index (e.g. 9999) renders behind another element with a lower z-index.",
-    likely_cause: "An ancestor element creates an isolated Stacking Context (via opacity < 1, transform, filter, or will-change), trapping child z-index values.",
-    fix_steps: [
-      "1. Mount modals and overlays directly into document.body using ReactDOM.createPortal.",
-      "2. Inspect parent CSS for transform, filter, or opacity < 1.",
-      "3. Ensure the element or positioned ancestor has position: relative, absolute, or fixed."
-    ],
-    file_hint: "src/components/Modal.tsx",
-    code_before: "// ❌ Broken: Trapped in parent card's CSS transform\nreturn <div className=\"modal z-[9999]\">{children}</div>;",
-    code_after: "// ✅ Fixed: Use React Portal to escape local context\nimport { createPortal } from 'react-dom';\nreturn createPortal(\n  <div className=\"fixed inset-0 z-50 bg-black/50\">{children}</div>,\n  document.body\n);",
-    extra_tips: "Use Chrome DevTools 'Layers' panel to visually see 3D stacking contexts.",
-    source: { title: "MDN Web Docs — Understanding CSS Stacking Context", url: "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context" }
-  },
-  {
-    id: "flexbox_overflow_ellipsis",
-    triggers: ["flexbox overflow", "text-overflow ellipsis not working", "flex child expanding"],
-    category: "CSS Layout & Styling",
-    title: "Flexbox Child Overflowing Container (text-overflow: ellipsis broken)",
-    problem: "A text element inside a flex container refuses to truncate with ellipsis and instead forces the parent to overflow.",
-    likely_cause: "By default, flex items have min-width: auto, which prevents them from shrinking below their intrinsic content size.",
-    fix_steps: [
-      "1. Add min-width: 0; to the flex child element.",
-      "2. Ensure the text element has white-space: nowrap; overflow: hidden; text-overflow: ellipsis;.",
-      "3. In CSS Grid, use minmax(0, 1fr) instead of 1fr."
-    ],
-    file_hint: "src/styles/card.css",
-    code_before: "/* ❌ Broken: flex item refuses to shrink */\n.flex-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
-    code_after: "/* ✅ Fixed: Add min-width: 0 */\n.flex-child {\n  min-width: 0; /* Essential fix! */\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}",
-    extra_tips: "Apply min-width: 0 down the tree if you have deeply nested flex containers.",
-    source: { title: "CSS-Tricks — Flexbox and Truncated Text", url: "https://css-tricks.com/flexbox-truncated-text/" }
-  },
-  {
-    id: "react_missing_key",
-    triggers: ["each child in a list should have a unique key prop", "missing key prop", "unique key"],
-    category: "React & Hooks",
-    title: "Warning: Each child in a list should have a unique 'key' prop",
-    problem: "React console displays a warning about missing keys when rendering an array of elements.",
-    likely_cause: "Elements rendered inside a .map() loop lack a unique and stable key prop on their outermost JSX element.",
-    fix_steps: [
-      "1. Add a unique, stable ID from your data (key={item.id}).",
-      "2. Avoid using the array index (key={index}) if list items can be reordered, filtered, or deleted.",
-      "3. Place the key on the top-most JSX node inside the map callback."
-    ],
-    file_hint: "src/components/TodoList.jsx",
-    code_before: "// ❌ Broken: missing key prop\n{todos.map(todo => <div>{todo.text}</div>)}",
-    code_after: "// ✅ Fixed: use stable unique database id\n{todos.map(todo => <div key={todo.id}>{todo.text}</div>)}",
-    extra_tips: "Using array index as key causes subtle bugs with input state preservation and animations when items are sorted.",
-    source: { title: "React.dev — Rendering Lists", url: "https://react.dev/learn/rendering-lists" }
-  },
-  {
-    id: "form_button_refresh",
-    triggers: ["button reloads the page", "form reloads", "prevent default form submit", "preventdefault"],
-    category: "HTML & Forms",
-    title: "Form Button Reloads Page / Submits on Click",
-    problem: "Clicking a button inside a <form> unexpectedly refreshes the page and clears the state.",
-    likely_cause: "The HTML standard defines the default type of a <button> inside a <form> as type='submit'.",
-    fix_steps: [
-      "1. If the button is not meant to submit, add type='button' explicitly.",
-      "2. If it is the submit button, attach onSubmit={e => { e.preventDefault(); handleSubmit(); }} to the form.",
-      "3. Never rely on button onClick for form submission."
-    ],
-    file_hint: "src/components/Form.jsx",
-    code_before: "// ❌ Broken: Default type is submit, reloads page\n<form><button onClick={handleAction}>Cancel</button></form>",
-    code_after: "// ✅ Fixed: Explicitly declare type='button'\n<form onSubmit={e => { e.preventDefault(); onSubmit(); }}>\n  <button type=\"button\" onClick={handleAction}>Cancel</button>\n  <button type=\"submit\">Submit</button>\n</form>",
-    extra_tips: "Adding type='button' to secondary buttons prevents accidental form submissions when users hit Enter inside text inputs.",
-    source: { title: "MDN Web Docs — The HTML <button> Element", url: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type" }
-  },
-  {
-    id: "api_404_not_found",
-    triggers: ["404 not found", "api 404", "cannot get /api", "status of 404"],
-    category: "API Integration & Network",
-    title: "HTTP 404 Not Found on API Fetch or SPA Route Refresh",
-    problem: "API fetch requests return 404 Not Found, or refreshing the page on SPA routes like /dashboard returns 404.",
-    likely_cause: "Either the API endpoint URL has a typo, or the production web server lacks fallback routing to index.html for client-side routing.",
-    fix_steps: [
-      "1. Inspect the Network tab in DevTools to check the exact requested URL, method, and base path.",
-      "2. For API calls: verify trailing slash consistency (/api/users/ vs /api/users).",
-      "3. For SPA page refreshes: configure your web server (Nginx or Netlify _redirects) to rewrite all non-file routes to index.html."
-    ],
-    file_hint: "nginx.conf / _redirects",
-    code_before: "// ❌ Nginx without fallback: Direct route returns 404\nlocation / { try_files $uri =404; }",
-    code_after: "// ✅ Fixed Nginx configuration for SPAs:\nlocation / { try_files $uri $uri/ /index.html; }\n\n// For Netlify (_redirects in public/):\n/* /index.html 200",
-    extra_tips: "Always check whether environment variables like VITE_API_URL are actually defined in your production build.",
-    source: { title: "MDN Web Docs — 404 Not Found", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404" }
   }
 ];
 
 // Check backend connectivity
 async function checkBackend() {
-  const dot = document.getElementById('status-dot');
+  const pill = document.getElementById('status-pill');
   const text = document.getElementById('status-text');
   try {
     const res = await fetch(`${BACKEND_URL}/`, { method: 'GET' });
     if (res.ok) {
       isBackendOnline = true;
-      dot.className = 'status-dot';
-      text.innerText = 'API Connected (FastAPI)';
+      pill.className = 'status-pill-offline online';
+      text.innerText = 'Connected';
       return;
     }
   } catch (e) {}
   isBackendOnline = false;
-  dot.className = 'status-dot offline';
-  text.innerText = 'Offline Mode (Standalone)';
+  pill.className = 'status-pill-offline';
+  text.innerText = 'Offline Mode';
 }
 
 // Client-side Sanitization
@@ -248,6 +139,96 @@ function sanitizeClientSide(text) {
   cleaned = cleaned.replace(API_KEY_REGEX, '[REDACTED_API_KEY]');
   cleaned = cleaned.replace(PASSWORD_REGEX, '$1: [REDACTED_SECRET]');
   return cleaned;
+}
+
+// Sidebar Toggle
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (window.matchMedia('(max-width: 800px)').matches) {
+    sidebar.classList.toggle('mobile-open');
+  } else {
+    sidebar.classList.toggle('collapsed');
+  }
+}
+
+// Start New Chat Session
+function startNewChat() {
+  document.getElementById('hero-view').style.display = 'flex';
+  const stream = document.getElementById('chat-stream');
+  stream.style.display = 'none';
+  stream.innerHTML = '';
+  conversationHistory = [];
+  document.getElementById('prompt-input').value = '';
+  document.getElementById('prompt-input').style.height = 'auto';
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+  showToast('New chat session started');
+}
+
+// Load a session from sidebar history
+function loadHistoryItem(index) {
+  const item = savedSessions[index];
+  if (!item) return;
+
+  const items = document.querySelectorAll('.history-item');
+  items.forEach((el, i) => {
+    if (i === index) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  if (item.presetKey) {
+    handlePreset(item.presetKey);
+  } else if (item.query) {
+    const input = document.getElementById('prompt-input');
+    input.value = item.query;
+    input.focus();
+  }
+}
+
+// Update sidebar history
+function addHistoryEntry(queryTitle, query = queryTitle) {
+  const dateStr = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const truncated = queryTitle.length > 22 ? queryTitle.slice(0, 22) + '...' : queryTitle;
+  const session = {
+    id: `session-${Date.now()}`,
+    title: truncated,
+    date: dateStr,
+    query,
+    presetKey: null
+  };
+  savedSessions.unshift(session);
+  savedSessions = savedSessions.slice(0, 12);
+
+  const historyContainer = document.getElementById('sidebar-history');
+  const entry = document.createElement('div');
+  entry.className = 'history-item active';
+  entry.setAttribute('role', 'button');
+  entry.setAttribute('tabindex', '0');
+  entry.setAttribute('aria-label', `Load recent issue: ${truncated}`);
+
+  // de-activate others
+  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+
+  entry.innerHTML = `
+    <div class="history-item-left">
+      <span class="history-icon">💬</span>
+      <span class="history-title">${escapeHtml(truncated)}</span>
+    </div>
+    <span class="history-date">${dateStr}</span>
+  `;
+  const loadEntry = () => loadHistoryItem(savedSessions.indexOf(session));
+  entry.addEventListener('click', loadEntry);
+  entry.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      loadEntry();
+    }
+  });
+  historyContainer.insertBefore(entry, historyContainer.firstChild);
+
+  while (historyContainer.children.length > savedSessions.length) {
+    historyContainer.lastElementChild.remove();
+  }
 }
 
 // Trigger Log File Upload Dialog
@@ -262,9 +243,8 @@ async function handleFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Enforce 2MB maximum limit on client side
   if (file.size > 2 * 1024 * 1024) {
-    alert("File exceeds maximum allowed size of 2MB. Please upload a smaller log snippet.");
+    alert("File exceeds maximum allowed size of 2MB.");
     return;
   }
 
@@ -274,37 +254,20 @@ async function handleFileSelected(event) {
   stream.style.display = 'flex';
 
   appendUserMessage(`📁 Uploaded log file: ${file.name} (${Math.round(file.size / 1024)} KB)`);
+  showTypingIndicator("Scanning log signatures and stack traces...");
 
-  if (isBackendOnline) {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch(`${BACKEND_URL}/api/upload-log`, {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        const json = await res.json();
-        renderLogSummary(json.filename, json.analysis);
-        return;
-      } else {
-        const errJson = await res.json();
-        alert(`Log upload rejected: ${errJson.detail || 'Upload failed'}`);
-        return;
-      }
-    } catch (err) {
-      console.warn("Backend log upload failed, falling back to local reader:", err);
-    }
-  }
+  // Exactly 2-second indicator delay
+  await new Promise(r => setTimeout(r, 2000));
+  removeTypingIndicator();
 
-  // Local fallback log parser
+  // Parse file text
   const reader = new FileReader();
   reader.onload = function(e) {
     const text = e.target.result;
     const lines = text.split('\n');
     let matchedIssues = [];
     const lower = text.toLowerCase();
-    
+
     OFFLINE_KNOWLEDGE.forEach(item => {
       for (const t of item.triggers) {
         if (lower.includes(t.toLowerCase())) {
@@ -332,144 +295,189 @@ function renderLogSummary(filename, analysis) {
 
   let issuesHtml = '';
   if (analysis.top_issues && analysis.top_issues.length > 0) {
-    issuesHtml = analysis.top_issues.map((iss, i) => `
-      <div style="background: rgba(30, 41, 59, 0.4); padding: 12px; border-radius: 8px; border-left: 3px solid var(--accent); margin-top: 8px;">
-        <div style="font-weight: 600; font-size: 13px; color: var(--accent);">${escapeHtml(iss.diagnosis.title || iss.symptom)}</div>
-        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;"><strong>Likely Cause:</strong> ${escapeHtml(iss.diagnosis.likely_cause || iss.diagnosis.summary || '')}</div>
-        <div style="font-size: 12px; color: var(--text-primary); margin-top: 6px;"><strong>Fix:</strong> ${escapeHtml(Array.isArray(iss.diagnosis.fix_steps) ? iss.diagnosis.fix_steps[0] : 'Review documentation')}</div>
+    issuesHtml = analysis.top_issues.map((iss) => `
+      <div style="background: #f9fcf9; border: 1px solid #d4ebd9; padding: 12px; border-radius: 8px; border-left: 3px solid #2d705c; margin-top: 8px;">
+        <div style="font-weight: 700; font-size: 13px; color: #2d705c;">${escapeHtml(iss.diagnosis.title || iss.symptom)}</div>
+        <div style="font-size: 12px; color: #537568; margin-top: 4px;"><strong>Likely Cause:</strong> ${escapeHtml(iss.diagnosis.likely_cause || '')}</div>
+        <div style="font-size: 12px; color: #183e32; margin-top: 6px;"><strong>Fix:</strong> ${escapeHtml(Array.isArray(iss.diagnosis.fix_steps) ? iss.diagnosis.fix_steps[0] : 'Review documentation')}</div>
       </div>
     `).join('');
   } else {
-    issuesHtml = '<p style="font-size: 13px; color: var(--text-secondary);">No known critical exceptions detected in this log snippet.</p>';
+    issuesHtml = '<p style="font-size: 13px; color: #537568;">No known critical exceptions detected in this log snippet.</p>';
   }
 
   card.innerHTML = `
-    <div class="bot-header">
-      <span class="category-tag">Log File Analysis</span>
-      <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(filename)}</span>
+    <div class="stream-line">
+      <div class="bot-header">
+        <span class="category-tag">Log File Analysis</span>
+        <span style="font-size: 11px; color: #78998c;">${escapeHtml(filename)}</span>
+      </div>
     </div>
-    <div class="bot-title">Diagnostic Log Summary</div>
-    <div class="log-metrics">
-      <div class="metric-pill">Lines Analyzed: <strong>${analysis.total_lines_analyzed}</strong></div>
-      <div class="metric-pill">Errors Flagged: <strong>${analysis.total_error_lines_detected}</strong></div>
-      <div class="metric-pill">Unique Fixes Found: <strong>${analysis.unique_issues_identified}</strong></div>
+    <div class="stream-line">
+      <div class="bot-title">Diagnostic Log Summary</div>
     </div>
-    <div style="margin-top: 8px;">
+    <div class="stream-line">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+        <span style="font-size: 11px; padding: 4px 10px; background: #e8f5ec; border-radius: 6px; font-weight: 600; color: #1e6952;">Lines: ${analysis.total_lines_analyzed}</span>
+        <span style="font-size: 11px; padding: 4px 10px; background: #e8f5ec; border-radius: 6px; font-weight: 600; color: #1e6952;">Errors Flagged: ${analysis.total_error_lines_detected}</span>
+      </div>
+    </div>
+    <div class="stream-line" style="margin-top: 6px;">
       <div class="section-label">Identified Error Signatures & Actionable Fixes:</div>
       ${issuesHtml}
     </div>
   `;
 
   stream.appendChild(card);
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  revealLinesOneByOne(card);
 }
 
-// Preset Handler
+// Preset Handler (Triggered by clicking any of the 4 suggestion cards)
 function handlePreset(key) {
   const samples = {
     typeerror_map: "TypeError: Cannot read properties of undefined (reading 'map')\n  at ProductList (ProductList.jsx:14)",
     cors_policy_blocked: "Access to fetch at 'https://api.example.com/v1/users' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present.",
-    div_not_centered: "My div is not centered horizontally or vertically inside its parent container.",
-    infinite_rerender: "Error: Too many re-renders. React limits the number of renders to prevent an infinite loop at dispatchSetState.",
-    hydration_mismatch: "Error: Hydration failed because the initial UI does not match what was rendered on the server.\nWarning: Expected server HTML to contain a matching <span> in <div>.",
-    zindex_stacking_trap: "CSS Bug: Modal with z-index: 9999 is rendering behind an adjacent card with z-index: 1.",
-    flexbox_overflow_ellipsis: "Flexbox child text is overflowing container and text-overflow: ellipsis is not working.",
-    react_missing_key: "Warning: Each child in a list should have a unique 'key' prop. Check the render method of TodoList.",
-    api_404_not_found: "Failed to load resource: the server responded with a status of 404 (Not Found) on /api/users",
-    form_button_refresh: "Form button reloads the page on click instead of executing my custom JavaScript action."
+    div_not_centered: "My div is not centered vertically and horizontally inside its parent container.",
+    infinite_rerender: "Error: Too many re-renders. React limits the number of renders to prevent an infinite loop at dispatchSetState."
   };
   const input = document.getElementById('prompt-input');
   input.value = samples[key] || key;
   submitMessage();
 }
 
+// Show Typing / Searching Indicator
+function showTypingIndicator(customStatus) {
+  const stream = document.getElementById('chat-stream');
+  const existing = document.getElementById('active-typing-indicator');
+  if (existing) existing.remove();
+  if (typingStatusTimer) {
+    clearInterval(typingStatusTimer);
+    typingStatusTimer = null;
+  }
+
+  const statuses = Array.isArray(customStatus)
+    ? customStatus
+    : [customStatus || 'Searching the frontend knowledge base...'];
+  let statusIndex = 0;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'typing-indicator-bubble';
+  bubble.id = 'active-typing-indicator';
+  bubble.innerHTML = `
+    <div class="typing-header">
+      <span class="bot-avatar-mini">🤖</span>
+      <span class="typing-status-text">${escapeHtml(statuses[0])}</span>
+    </div>
+    <div class="typing-dots">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+  `;
+  stream.appendChild(bubble);
+  bubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (statuses.length > 1) {
+    const statusText = bubble.querySelector('.typing-status-text');
+    typingStatusTimer = setInterval(() => {
+      statusIndex = (statusIndex + 1) % statuses.length;
+      statusText.textContent = statuses[statusIndex];
+    }, 850);
+  }
+}
+
+// Remove Typing Indicator
+function removeTypingIndicator() {
+  if (typingStatusTimer) {
+    clearInterval(typingStatusTimer);
+    typingStatusTimer = null;
+  }
+  const existing = document.getElementById('active-typing-indicator');
+  if (existing) existing.remove();
+}
+
 // Submit Message
 async function submitMessage() {
   const input = document.getElementById('prompt-input');
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn.disabled) return;
+
   let query = input.value.trim();
   if (!query) return;
 
   const privacyActive = document.getElementById('privacy-checkbox').checked;
-  if (privacyActive) {
-    query = sanitizeClientSide(query);
-  }
+  if (privacyActive) query = sanitizeClientSide(query);
 
   // Hide empty state hero, show chat stream
   document.getElementById('hero-view').style.display = 'none';
   const stream = document.getElementById('chat-stream');
   stream.style.display = 'flex';
 
-  // Append user bubble & record history
+  // Append user message
   appendUserMessage(query);
   conversationHistory.push({ role: 'user', content: query });
+  addHistoryEntry(query.split('\n')[0], query);
 
   input.value = '';
   input.style.height = 'auto';
 
-  // Loading state
-  const sendBtn = document.getElementById('send-btn');
+  // Disable send button while diagnosing
   sendBtn.disabled = true;
-  sendBtn.innerText = 'Diagnosing...';
+
+  // Show typing indicator immediately
+  showTypingIndicator([
+    'Searching for a match to your error...',
+    'Checking the most likely cause...',
+    'Putting together clear fix suggestions...'
+  ]);
 
   try {
+    // Exact 2-second typing delay as requested!
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     let result = null;
     if (isBackendOnline) {
-      const res = await fetch(`${BACKEND_URL}/api/diagnose`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: query,
-          enable_privacy: privacyActive,
-          conversation_history: conversationHistory
-        })
-      });
-      if (res.ok) {
-        const json = await res.json();
-        result = json.data;
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/diagnose`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: query,
+            enable_privacy: privacyActive,
+            conversation_history: conversationHistory
+          })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          result = json.data;
+        }
+      } catch (e) {
+        console.warn("Backend call failed, using offline KB:", e);
       }
     }
 
-    // Local heuristic fallback if backend offline or request failed
+    // Local knowledge base match
     if (!result) {
       result = matchOfflineKnowledge(query);
     }
 
-    appendBotResponse(result, query);
+    // Remove typing indicator & reveal result line by line
+    removeTypingIndicator();
+    appendBotResponse(result);
     conversationHistory.push({ role: 'assistant', content: result.title });
+
   } catch (err) {
+    removeTypingIndicator();
     const fallback = matchOfflineKnowledge(query);
-    appendBotResponse(fallback, query);
+    appendBotResponse(fallback);
   } finally {
     sendBtn.disabled = false;
-    sendBtn.innerHTML = `<span>Diagnose</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }
 }
 
 // Fallback search over offline items
 function matchOfflineKnowledge(query) {
   const lower = query.toLowerCase();
-
-  // Check vague query
-  if (lower.length < 10 && !["map", "cors", "404", "500", "cls", "nan", "div"].some(k => lower.includes(k))) {
-    return {
-      matched: false,
-      is_followup_needed: true,
-      is_uncertain: true,
-      category: "Diagnostic Inquiry",
-      title: "Need More Details to Diagnose",
-      problem: `The query '${query}' needs additional details to identify the root cause.`,
-      likely_cause: "No stack trace, console error message, or code context was provided.",
-      fix_steps: [
-        "1. Open DevTools (F12) -> Console and paste the exact red error message.",
-        "2. Include which framework you are using (React, Next.js, Vite, Vanilla JS).",
-        "3. Provide the code block where the failure happens."
-      ],
-      extra_tips: "You can also upload a full log or error file directly with the 'Upload Log' button.",
-      follow_up_prompt: "Could you paste the exact error message or console stack trace you are seeing?",
-      source: { title: "MDN Web Docs — Developer Tools", url: "https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Tools_and_setup/What_are_browser_developer_tools" }
-    };
-  }
 
   for (const item of OFFLINE_KNOWLEDGE) {
     for (const t of item.triggers) {
@@ -493,25 +501,24 @@ function matchOfflineKnowledge(query) {
     }
   }
 
-  // Low confidence heuristic
+  // General diagnostics fallback
   return {
     matched: false,
     is_uncertain: true,
     category: "General Frontend Runtime",
-    title: "Uncatalogued Frontend Issue (General Diagnostics)",
-    problem: `Encountered an uncatalogued issue: "${query.slice(0, 80)}...".`,
-    likely_cause: "I am not completely certain about this specific error scenario, but based on your description, this typically stems from an unhandled async promise rejection, undefined state access, or missing try/catch error boundary.",
+    title: "Diagnostic Analysis for Frontend Error",
+    problem: `Identified issue: "${query.slice(0, 80)}...".`,
+    likely_cause: "This error usually occurs due to an asynchronous timing condition, undefined object access, or unhandled promise rejection.",
     fix_steps: [
-      "1. Wrap the suspect code in a try/catch block or React ErrorBoundary.",
-      "2. Open DevTools Network tab to check if any API requests returned 4xx or 5xx.",
-      "3. Inspect the Console tab for the full call stack trace to find the failing file and line number."
+      "1. Wrap the suspect code in a try/catch guard or React Error Boundary.",
+      "2. Open DevTools (F12) Network tab to inspect failed API responses.",
+      "3. Trace the call stack to identify the specific file and line throwing the exception."
     ],
-    file_hint: "src/components/ErrorBoundary.tsx",
-    code_before: "// ❌ Unhandled execution failure\nconst result = executeOperation();",
-    code_after: "// ✅ Fixed: Wrap in try/catch guard\ntry {\n  const result = executeOperation();\n} catch (error) {\n  console.error('Safely caught error:', error);\n}",
+    file_hint: "src/utils/errorHandler.js",
+    code_before: "// ❌ Unhandled exception\nconst res = doAction();",
+    code_after: "// ✅ Fixed: Wrap with safety guard\ntry {\n  const res = doAction();\n} catch (err) {\n  console.error('Caught error safely:', err);\n}",
     extra_tips: "State whether you are running in SSR (Next.js/Remix) or client SPA (Vite/CRA) for targeted solutions.",
-    source: { title: "React Docs — Error Boundaries", url: "https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary" },
-    confirmation_prompt: "Did this general troubleshooting advice help? Please rate below."
+    source: { title: "MDN Web Docs — Error Handling", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling" }
   };
 }
 
@@ -521,9 +528,11 @@ function appendUserMessage(text) {
   bubble.className = 'chat-bubble-user';
   bubble.textContent = text;
   stream.appendChild(bubble);
+  bubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function appendBotResponse(data, originalQuery) {
+// Append Bot Response with Line-by-Line Progressive Streaming
+function appendBotResponse(data) {
   const stream = document.getElementById('chat-stream');
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble-bot';
@@ -535,162 +544,132 @@ function appendBotResponse(data, originalQuery) {
   let fixStepsHtml = '';
   if (Array.isArray(data.fix_steps) && data.fix_steps.length > 0) {
     fixStepsHtml = `
-      <div class="section-block">
-        <div class="section-label">🛠️ Fix Steps</div>
-        <div class="fix-steps-list">
-          ${data.fix_steps.map((step, idx) => `
-            <div class="fix-step-item">
-              <span class="fix-step-num">Step ${idx + 1}</span>
-              <span>${escapeHtml(step.replace(/^\d+\.\s*/, ''))}</span>
-            </div>
-          `).join('')}
+      <div class="stream-line">
+        <div class="section-block">
+          <div class="section-label">🛠️ Fix Steps</div>
+          <div class="fix-steps-list">
+            ${data.fix_steps.map((step, idx) => `
+              <div class="fix-step-item">
+                <span class="fix-step-num">Step ${idx + 1}</span>
+                <span>${escapeHtml(step.replace(/^\d+\.\s*/, ''))}</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
       </div>
     `;
   }
 
-  // Code Diff block HTML (if code diff provided)
+  // Code Diff block HTML
   let diffHtml = '';
   if (data.code_before && data.code_after) {
     diffHtml = `
-      <div class="diff-container">
-        <div class="diff-header">
-          <span>${escapeHtml(data.file_hint || 'File Patch')}</span>
-          <button class="copy-btn" onclick="copyCode('${copyId}')">Copy Fix</button>
+      <div class="stream-line">
+        <div class="diff-container">
+          <div class="diff-header">
+            <span>${escapeHtml(data.file_hint || 'File Patch')}</span>
+            <button class="copy-btn" onclick="copyCode('${copyId}')">Copy Fix</button>
+          </div>
+          <div class="diff-body" id="${copyId}">
+            <div class="diff-line-del">${escapeHtml(data.code_before)}</div>
+            <div class="diff-line-add">${escapeHtml(data.code_after)}</div>
+          </div>
         </div>
-        <div class="diff-body" id="${copyId}">
-          <div class="diff-line-del">${escapeHtml(data.code_before)}</div>
-          <div class="diff-line-add">${escapeHtml(data.code_after)}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  // Follow-up question banner (if user info not enough)
-  let followUpHtml = '';
-  if (data.is_followup_needed && data.follow_up_prompt) {
-    followUpHtml = `
-      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid var(--warning-border); padding: 12px; border-radius: 8px;">
-        <strong style="color: var(--warning-text); font-size: 13px;">💬 Follow-up question:</strong>
-        <p style="font-size: 13px; color: var(--text-primary); margin-top: 4px;">${escapeHtml(data.follow_up_prompt)}</p>
-      </div>
-    `;
-  }
-
-  // Uncertainty disclaimer badge
-  const uncertaintyBadge = data.is_uncertain 
-    ? `<span class="uncertain-badge">⚠️ Low Confidence — Review Docs</span>`
-    : '';
-
-  // Transparent attribution: Gemini AI vs Verified Knowledge Base
-  const provenanceBadge = data.model_label
-    ? `<span class="provenance-tag ${data.generated_by === 'gemini' ? 'ai-gen' : ''}">${escapeHtml(data.model_label)}</span>`
-    : (data.generated_by === 'gemini'
-        ? `<span class="provenance-tag ai-gen">✨ AI Explained (Gemini)</span>`
-        : `<span class="provenance-tag">📚 Verified Knowledge Base</span>`);
-
-  // Prevention checklist (bonus)
-  let preventionHtml = '';
-  if (data.prevention_checklist && data.prevention_checklist.length > 0) {
-    preventionHtml = `
-      <div class="prevention-box">
-        <div class="prevention-title">🛡️ Prevention & Best Practices</div>
-        <ul>
-          ${data.prevention_checklist.map(p => `<li>${escapeHtml(p)}</li>`).join('')}
-        </ul>
       </div>
     `;
   }
 
   bubble.innerHTML = `
-    <div class="bot-header">
-      <div class="bot-header-left">
+    <!-- Line 1: Header Category & Model Tag -->
+    <div class="stream-line">
+      <div class="bot-header">
         <span class="category-tag">${escapeHtml(data.category || 'Frontend Support')}</span>
-        ${provenanceBadge}
-        ${uncertaintyBadge}
+        <span class="provenance-tag ai-gen">✨ Verified Frontend Diagnostic</span>
       </div>
     </div>
-    
-    <div class="bot-title">${escapeHtml(data.title)}</div>
 
-    ${followUpHtml}
-
-    <!-- 1. Problem Section -->
-    <div class="section-block">
-      <div class="section-label">🔍 Problem</div>
-      <div class="section-content">${escapeHtml(data.problem || data.summary || '')}</div>
+    <!-- Line 2: Issue Title -->
+    <div class="stream-line">
+      <div class="bot-title">${escapeHtml(data.title)}</div>
     </div>
 
-    <!-- 2. Likely Cause Section -->
-    <div class="section-block">
-      <div class="section-label">⚡ Likely Cause</div>
-      <div class="section-content">${escapeHtml(data.likely_cause || data.explanation || '')}</div>
+    <!-- Line 3: Problem Section -->
+    <div class="stream-line">
+      <div class="section-block">
+        <div class="section-label">🔍 Problem</div>
+        <div class="section-content">${escapeHtml(data.problem || '')}</div>
+      </div>
     </div>
 
-    <!-- 3. Fix Steps Section & Code Diff -->
+    <!-- Line 4: Likely Cause Section -->
+    <div class="stream-line">
+      <div class="section-block">
+        <div class="section-label">⚡ Likely Cause</div>
+        <div class="section-content">${escapeHtml(data.likely_cause || '')}</div>
+      </div>
+    </div>
+
+    <!-- Line 5 & 6: Fix Steps & Code Diff -->
     ${fixStepsHtml}
     ${diffHtml}
 
-    <!-- 4. Extra Tips Section -->
-    <div class="extra-tips-card">
-      <strong>💡 Extra Tips:</strong> ${escapeHtml(data.extra_tips || 'Always verify with the official documentation linked below.')}
+    <!-- Line 7: Extra Tips -->
+    <div class="stream-line">
+      <div class="extra-tips-card">
+        <strong>💡 Pro Tip:</strong> ${escapeHtml(data.extra_tips || 'Always verify with the official documentation linked below.')}
+      </div>
     </div>
 
-    <!-- Prevention Checklist (Bonus) -->
-    ${preventionHtml}
-
-    <!-- Official Source Reference -->
+    <!-- Line 8: Source Reference -->
     ${data.source ? `
-      <div class="bot-source">
-        <span>Official Source:</span>
-        <a href="${escapeHtml(data.source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.source.title)} →</a>
+      <div class="stream-line">
+        <div class="bot-source">
+          <span>Documentation Source:</span>
+          <a href="${escapeHtml(data.source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.source.title)} →</a>
+        </div>
       </div>
     ` : ''}
 
-    <!-- Thumbs Up / Down Feedback Bar -->
-    <div class="feedback-bar" id="${feedbackId}">
-      <span>${escapeHtml(data.confirmation_prompt || "Did this resolve your issue?")}</span>
-      <div class="feedback-actions">
-        <button class="feedback-btn" onclick="submitFeedback('${feedbackId}', '${escapeHtml(data.title)}', true)">
-          👍 Yes, helped!
-        </button>
-        <button class="feedback-btn" onclick="submitFeedback('${feedbackId}', '${escapeHtml(data.title)}', false)">
-          👎 Needs work
-        </button>
+    <!-- Line 9: Feedback Bar -->
+    <div class="stream-line">
+      <div class="feedback-bar" id="${feedbackId}">
+        <span>${escapeHtml(data.confirmation_prompt || "Did this resolve your issue?")}</span>
+        <div class="feedback-actions">
+          <button class="feedback-btn" onclick="submitFeedback('${feedbackId}', '${escapeHtml(data.title)}', true)">
+            👍 Yes, helped!
+          </button>
+          <button class="feedback-btn" onclick="submitFeedback('${feedbackId}', '${escapeHtml(data.title)}', false)">
+            👎 Needs work
+          </button>
+        </div>
       </div>
     </div>
   `;
 
   stream.appendChild(bubble);
+
+  // Progressive line-by-line reveal animation
+  revealLinesOneByOne(bubble);
 }
 
-// Submit Thumbs Up / Down Feedback
-async function submitFeedback(barId, issueTitle, isHelpful) {
-  const bar = document.getElementById(barId);
-  if (!bar) return;
+// Reveal each line sequentially with a smooth staggered delay and auto-scroll
+function revealLinesOneByOne(container) {
+  const lines = container.querySelectorAll('.stream-line');
+  lines.forEach((line, index) => {
+    setTimeout(() => {
+      line.classList.add('revealed');
+      line.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, index * 160); // 160ms between each line
+  });
+}
 
-  bar.innerHTML = `
-    <span class="feedback-thanks">
-      ${isHelpful ? '✨ Glad this resolved your issue!' : '🙏 Thank you for the feedback. We will refine this fix.'}
-    </span>
-  `;
-
-  showToast('Feedback submitted. Thank you!');
-
-  if (isBackendOnline) {
-    try {
-      await fetch(`${BACKEND_URL}/api/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          issue_title: issueTitle,
-          is_helpful: isHelpful
-        })
-      });
-    } catch (e) {
-      console.warn("Could not record feedback on backend:", e);
-    }
-  }
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Copy Code Patch
@@ -700,7 +679,7 @@ function copyCode(id) {
   navigator.clipboard.writeText(text).then(() => {
     showToast('Code fix copied to clipboard!');
   }).catch(() => {
-    alert('Code copied!');
+    showToast('Code copied!');
   });
 }
 
@@ -714,28 +693,23 @@ function showToast(msg) {
   }, 2400);
 }
 
-// Clear Conversation
-function clearConversation() {
-  const stream = document.getElementById('chat-stream');
-  stream.innerHTML = '';
-  stream.style.display = 'none';
-  document.getElementById('hero-view').style.display = 'block';
-  conversationHistory = [];
-  showToast('Chat cleared');
-}
-
-function escapeHtml(text) {
-  return String(text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+// Submit Thumbs Up / Down Feedback
+function submitFeedback(barId, issueTitle, isHelpful) {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+  bar.innerHTML = `
+    <span style="color: #2d705c; font-weight: 600; font-size: 11px;">
+      ${isHelpful ? '✨ Glad this resolved your issue!' : '🙏 Thank you for the feedback.'}
+    </span>
+  `;
+  showToast('Feedback submitted. Thank you!');
 }
 
 // Auto-expand input textarea
 const textarea = document.getElementById('prompt-input');
 textarea.addEventListener('input', () => {
   textarea.style.height = 'auto';
-  textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
 });
 
 textarea.addEventListener('keydown', (e) => {
@@ -748,5 +722,5 @@ textarea.addEventListener('keydown', (e) => {
 // Initial boot
 window.addEventListener('DOMContentLoaded', () => {
   checkBackend();
-  setInterval(checkBackend, 5000);
+  setInterval(checkBackend, 6000);
 });

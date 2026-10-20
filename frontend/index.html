@@ -3,139 +3,258 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FrontFix AI — Frontend Support Engineer (Team B)</title>
+  <title>FrontendFix AI — Team B Frontend Support</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Safety Warning Notice Bar -->
-  <div class="safety-banner">
-    <span>🛡️ <strong>Safety Advisory:</strong> Never paste real production passwords, private keys, or customer data. Privacy Shield auto-redacts tokens.</span>
-  </div>
+  <div class="app-layout">
 
-  <!-- Minimal Header -->
-  <header class="header">
-    <div class="header-container">
-      <a href="#" class="brand">
-        <div class="brand-icon">⚡</div>
-        <span class="brand-name">FrontFix AI</span>
-        <span class="brand-badge">Team B • Frontend</span>
-      </a>
-
-      <div class="header-actions">
-        <div class="status-pill">
-          <span class="status-dot" id="status-dot"></span>
-          <span id="status-text">Connecting...</span>
+    <!-- Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+          </div>
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-title">FrontendFix AI</span>
+            <span class="sidebar-brand-sub">HISTORY</span>
+          </div>
         </div>
-        <button class="icon-btn" onclick="triggerLogUpload()" title="Upload a frontend log file or console dump">
-          📁 Upload Log
+
+        <button class="new-session-btn" onclick="startNewChat()">
+          <span>+ New Chat Session</span>
         </button>
-        <button class="icon-btn" onclick="clearConversation()" title="Clear chat history">
-          Clear
-        </button>
-        <a href="https://github.com/AdnanAK8/FrontFix" target="_blank" class="icon-btn">
-          GitHub
-        </a>
       </div>
+
+      <!-- Chat History List -->
+      <div class="sidebar-history" id="sidebar-history">
+        <div class="history-item active" onclick="loadHistoryItem(0)">
+          <div class="history-item-left">
+            <span class="history-icon">💬</span>
+            <span class="history-title">CORS policy blocked: No...</span>
+          </div>
+          <span class="history-date">Oct 19</span>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <span>Team B: Class Project</span>
+        <span>v1.0.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <div class="header-logo-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+          </div>
+
+          <div class="header-titles">
+            <div class="header-title-row">
+              <span class="header-title">FrontendFix AI</span>
+              <span class="header-badge">Team B - Frontend</span>
+            </div>
+            <span class="header-subtitle">AI Support for JavaScript, React, CSS, HTML & APIs</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="status-pill-offline" id="status-pill">
+            <span class="status-indicator-dot"></span>
+            <span id="status-text">Offline Mode</span>
+          </div>
+
+          <div class="pill-badge-white" title="Verified local frontend diagnostics knowledge base active">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Local Fallback</span>
+          </div>
+
+          <button class="btn-new-chat" onclick="startNewChat()">
+            + New Chat
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Chat Body -->
+      <main class="chat-viewport" id="chat-viewport">
+
+        <!-- Welcome Hero View (matching screenshot) -->
+        <div class="hero-view" id="hero-view">
+
+          <div class="hero-avatar">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#23dc9a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+              <circle cx="12" cy="5" r="2"></circle>
+              <path d="M12 7v4"></path>
+              <line x1="8" y1="16" x2="8.01" y2="16"></line>
+              <line x1="16" y1="16" x2="16.01" y2="16"></line>
+            </svg>
+          </div>
+
+          <div class="hero-pill-badge">
+            Team B: Frontend Support Chatbot
+          </div>
+
+          <h1 class="hero-main-title">FrontendFix AI</h1>
+
+          <p class="hero-description">
+            Share the error or tell me what feels broken. I’ll help you find the likely cause and walk you through a fix, one step at a time.
+          </p>
+
+          <div class="hero-section-label">
+            TRY ONE OF THESE REAL FRONTEND ISSUES:
+          </div>
+
+          <!-- 2x2 Suggestion Cards Grid -->
+          <div class="suggestions-grid">
+
+            <!-- Card 1: React Error -->
+            <button class="suggestion-card" onclick="handlePreset('typeerror_map')">
+              <div class="card-icon-wrap icon-flame">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                </svg>
+              </div>
+              <div class="card-content">
+                <span class="card-tag">REACT ERROR</span>
+                <span class="card-title">Cannot read properties of undefined (reading 'map')</span>
+              </div>
+            </button>
+
+            <!-- Card 2: API & CORS -->
+            <button class="suggestion-card" onclick="handlePreset('cors_policy_blocked')">
+              <div class="card-icon-wrap icon-globe">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </div>
+              <div class="card-content">
+                <span class="card-tag">API & CORS</span>
+                <span class="card-title">CORS policy blocked: No 'Access-Control-Allow-Origin' header present</span>
+              </div>
+            </button>
+
+            <!-- Card 3: CSS Layout -->
+            <button class="suggestion-card" onclick="handlePreset('div_not_centered')">
+              <div class="card-icon-wrap icon-layout">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </div>
+              <div class="card-content">
+                <span class="card-tag">CSS LAYOUT</span>
+                <span class="card-title">My div is not centered vertically and horizontally</span>
+              </div>
+            </button>
+
+            <!-- Card 4: React Hooks -->
+            <button class="suggestion-card" onclick="handlePreset('infinite_rerender')">
+              <div class="card-icon-wrap icon-code">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+              </div>
+              <div class="card-content">
+                <span class="card-tag">REACT HOOKS</span>
+                <span class="card-title">useEffect runs in an infinite re-render loop</span>
+              </div>
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- Chat Stream Messages (Active when conversation begins) -->
+        <div class="chat-stream" id="chat-stream" style="display: none;"></div>
+
+      </main>
+
+      <!-- Floating Chat Input Dock (matching screenshot) -->
+      <footer class="input-dock-wrapper">
+        <div class="input-dock-card">
+          <div class="input-dock-main">
+
+            <!-- Upload Icon Button -->
+            <button class="dock-upload-btn" onclick="triggerLogUpload()" title="Attach error log or file snippet" aria-label="Upload log file">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </button>
+
+            <!-- Textarea Prompt Input -->
+            <textarea
+              id="prompt-input"
+              class="dock-textarea"
+              rows="1"
+              placeholder="Paste an error, stack trace, or describe what’s going wrong..."
+            ></textarea>
+
+            <!-- Send Button -->
+            <button id="send-btn" class="dock-send-btn" onclick="submitMessage()" aria-label="Send query">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+
+          </div>
+
+          <!-- Bottom Micro Footer Note -->
+          <div class="input-dock-footer">
+            <label class="dock-privacy">
+              <input type="checkbox" id="privacy-checkbox" checked>
+              <span>Privacy shield on</span>
+            </label>
+            <span class="dock-warning">Don’t include passwords, API keys, or customer data.</span>
+            <span class="dock-shortcut">
+              Press <kbd>Enter</kbd> to send
+            </span>
+          </div>
+        </div>
+      </footer>
+
     </div>
-  </header>
 
-  <!-- Main Chat Content -->
-  <main class="main" id="main-content">
-    
-    <!-- Empty State Hero -->
-    <div class="hero" id="hero-view">
-      <h1>Frontend Technical Issue Resolution</h1>
-      <p>Paste a JavaScript or React exception, CSS layout breakdown, API/CORS network failure, or browser console error for step-by-step resolution.</p>
-
-      <!-- Category: React & Hooks -->
-      <div class="preset-category-title">⚛️ React & Hooks Errors</div>
-      <div class="quick-prompts">
-        <button class="prompt-chip" onclick="handlePreset('typeerror_map')">
-          <span class="chip-tag">TypeError</span> Cannot read properties of undefined (reading 'map')
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('infinite_rerender')">
-          <span class="chip-tag">Hooks</span> useEffect runs in an infinite loop
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('hydration_mismatch')">
-          <span class="chip-tag">SSR</span> React Hydration Mismatch
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('react_missing_key')">
-          <span class="chip-tag">Keys</span> Warning: Each child in a list should have a unique 'key'
-        </button>
-      </div>
-
-      <!-- Category: CSS & Layout -->
-      <div class="preset-category-title">🎨 CSS & Layout Breakdown</div>
-      <div class="quick-prompts">
-        <button class="prompt-chip" onclick="handlePreset('div_not_centered')">
-          <span class="chip-tag">Centering</span> My div is not centered
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('zindex_stacking_trap')">
-          <span class="chip-tag">Z-Index</span> Stacking context trap (renders behind)
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('flexbox_overflow_ellipsis')">
-          <span class="chip-tag">Flexbox</span> Overflow / text-overflow: ellipsis broken
-        </button>
-      </div>
-
-      <!-- Category: API & Browser Network -->
-      <div class="preset-category-title">🌐 API Integration & Network Errors</div>
-      <div class="quick-prompts">
-        <button class="prompt-chip" onclick="handlePreset('cors_policy_blocked')">
-          <span class="chip-tag">CORS</span> CORS policy blocked my request
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('api_404_not_found')">
-          <span class="chip-tag">HTTP 404</span> Not Found on API route or SPA refresh
-        </button>
-        <button class="prompt-chip" onclick="handlePreset('form_button_refresh')">
-          <span class="chip-tag">HTML</span> Form button reloads page on click
-        </button>
-      </div>
-    </div>
-
-    <!-- Active Message Stream (hidden by default) -->
-    <div class="chat-stream" id="chat-stream" style="display: none;"></div>
-
-  </main>
+  </div>
 
   <!-- Hidden File Input for Log Upload -->
   <input type="file" id="log-file-input" style="display: none;" accept=".log,.txt,.json" onchange="handleFileSelected(event)">
 
   <!-- Toast Notification -->
   <div id="toast" class="toast">Feedback received!</div>
-
-  <!-- Minimal Floating Input Dock -->
-  <div class="input-dock">
-    <div class="input-container">
-      <textarea 
-        id="prompt-input" 
-        class="input-textarea" 
-        rows="1" 
-        placeholder="Paste a frontend error message, stack trace, or describe your problem... (Enter to send, Shift+Enter for newline)"
-      ></textarea>
-      
-      <div class="input-toolbar">
-        <div class="toolbar-left">
-          <label class="privacy-toggle" title="Automatically masks JWT tokens, API keys and credentials before sending">
-            <input type="checkbox" id="privacy-checkbox" checked>
-            <span>Privacy Shield Active</span>
-          </label>
-          <button class="upload-log-btn" onclick="triggerLogUpload()" title="Upload and summarize a .log or .txt file">
-            📎 Upload Log File
-          </button>
-        </div>
-        
-        <button id="send-btn" class="send-btn" onclick="submitMessage()">
-          <span>Diagnose</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
 
   <script src="app.js"></script>
 </body>
