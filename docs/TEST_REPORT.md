@@ -1,132 +1,42 @@
-# 🧪 FrontFix AI — Comprehensive Test Report
-> **Phase 6 Verification & Quality Assurance Report — Team B (Frontend Support Chatbot)**
-> **Tested Date:** October 20, 2026  
-> **Status:** ✅ All 7 Test Suites Passing (100% Pass Rate)
+# FrontFix Initial Diagnostic Checklist — Test Results
 
----
+**Test date:** October 20, 2026
+**Result:** 25 exact inputs executed; 25 passed after the recorded fixes.
+**Test command:** `python -m pytest backend\tests\test_initial_checklist.py backend\tests\test_engine.py backend\tests\test_twenty_plus_suite.py -q`
+**Final run:** 42 passed, 24 subtests passed.
 
-## 1. Executive Summary
+The checklist inputs below were sent verbatim to `DiagnosticEngine.diagnose`. The LLM provider was disabled during the automated run so the returned results are reproducible and grounded in the local knowledge base. Tests checked the returned diagnosis, likely cause, and at least one relevant fix step; they did not treat knowledge-base presence as a pass.
 
-This report validates **FrontFix AI** against the core project requirements outlined in the *AI-Powered Chatbots for Technical Issue Resolution Handout (Team B - Frontend Support)*.
+The first exact-input run exposed failures in cases 19, 20, and 25. The threshold change also required an explicit trigger for case 21; this was fixed before the final run. The `Improvement` column records the resulting correction, or states that no change was needed.
 
-| Metric | Target Requirement | Measured Result | Status |
-| :--- | :--- | :--- | :--- |
-| **Knowledge Base Size** | At least 30 common issues | **32 fully indexed issues** | ✅ Pass |
-| **Required Test Scenarios** | 4 mandatory prompt cases | **4/4 (100% resolution accuracy)** | ✅ Pass |
-| **Top Preset Coverage** | Top 10 frontend scenarios | **10/10 curated presets** | ✅ Pass |
-| **Output Structure** | Problem -> Likely Cause -> Fix Steps -> Extra Tips | **100% Compliant across all queries** | ✅ Pass |
-| **Privacy Redaction** | Strips API keys, Bearer tokens, secrets | **100% scrubbed (0 secrets leaked)** | ✅ Pass |
-| **Log Analyzer (Bonus)** | Parse file & summarize top errors | **Functional via UI & `/api/upload-log`** | ✅ Pass |
-| **Interactive Feedback** | Thumbs up / Thumbs down option | **Integrated with feedback logging API** | ✅ Pass |
-| **Follow-up Handling** | Asks questions on vague input | **Triggers inquiry badge on short queries**| ✅ Pass |
+| # | Input (exact) | Expected result | Actual result | Pass/fail | Improvement |
+|---:|---|---|---|---|---|
+| 1 | `Cannot read properties of undefined (reading 'map')` | Diagnose an undefined list accessed before data loads; recommend safe array state and loading/data handling. | **TypeError: Cannot read properties of undefined (reading 'map')** — asynchronous list state is undefined initially; recommends loading/error/data states, `useState([])`, and array validation. | PASS | No change; correct on the initial exact-input run. |
+| 2 | `CORS policy blocked my request` | Identify missing/mismatched CORS response headers or failed preflight; advise proxy/server CORS configuration. | **CORS Policy Blocked: No 'Access-Control-Allow-Origin' Header** — origin header or OPTIONS preflight issue; recommends dev proxy and correct server headers. | PASS | No change; correct on the initial exact-input run. |
+| 3 | `My div is not centered` | Identify parent sizing/alignment issue; recommend centering on a parent with sufficient height. | **CSS Centering: Div or Modal Not Centered on Screen** — parent lacks height or alignment is applied to the child; recommends Grid/Flex on parent. | PASS | No change; correct on the initial exact-input run. |
+| 4 | `useEffect runs in an infinite loop` | Identify repeated state updates or unstable effect dependencies; advise correcting the effect/update pattern. | **Too Many Re-renders: useEffect Runs in an Infinite Loop** — render-time state update or unstable dependencies; recommends checking effects and using functional updates/memoization. | PASS | No change; correct on the initial exact-input run. |
+| 5 | `Each child in a list should have a unique key` | Identify missing stable React list keys; recommend a stable data ID. | **Warning: Each child in a list should have a unique 'key' prop** — mapped elements lack stable keys; recommends `key={item.id}`. | PASS | No change; correct on the initial exact-input run. |
+| 6 | `A controlled input changes to uncontrolled` | Identify a controlled input receiving `undefined`/`null`; recommend a stable string value. | **Warning: Component changing uncontrolled input to be controlled** — initial value is `undefined`/`null`; recommends `""` or a fallback value. | PASS | No change; correct on the initial exact-input run. |
+| 7 | `Cannot read properties of null` | Identify property access before a nullable object is ready; recommend guards/optional chaining. | **TypeError: Cannot read properties of null (reading 'property')** — state/ref is null or unresolved; recommends optional chaining and a loading guard. | PASS | No change; correct on the initial exact-input run. |
+| 8 | `Assignment to constant variable` | Identify reassignment of a `const`; recommend `let` for reassignable bindings. | **TypeError: Assignment to constant variable** — a `const` binding is reassigned; recommends `let` or using a state setter. | PASS | No change; correct on the initial exact-input run. |
+| 9 | `Unexpected token '<' when parsing JSON` | Identify HTML returned where JSON was expected; inspect response type and route. | **SyntaxError: Unexpected token '<', '<!DOCTYPE '... is not valid JSON** — server returned an HTML page; recommends checking content type, response, and API route. | PASS | No change; correct on the initial exact-input run. |
+| 10 | `Uncaught promise rejection` | Identify an unhandled rejected promise; recommend `try/catch` or `.catch()`. | **UnhandledPromiseRejection: Uncaught (in promise) Error** — rejected promise lacks a handler; recommends `try/catch` or `.catch()`. | PASS | No change; correct on the initial exact-input run. |
+| 11 | `My z-index does not bring the modal to the front` | Identify a stacking-context/positioning issue; inspect ancestors or portal the modal. | **CSS Z-Index Stacking Context Trap (Element Renders Behind)** — ancestor creates an isolated stacking context; recommends inspecting ancestor styles or using a portal. | PASS | No change; correct on the initial exact-input run. |
+| 12 | `Text inside a flex item overflows instead of showing ellipsis` | Identify the default flex-item minimum size; recommend `min-width: 0` and truncation styles. | **Flexbox Child Overflowing Container (text-overflow: ellipsis broken)** — `min-width: auto` prevents shrinking; recommends `min-width: 0` and ellipsis styles. | PASS | No change; correct on the initial exact-input run. |
+| 13 | `Grid cards overflow on mobile` | Identify fixed/non-responsive grid sizing; recommend responsive `auto-fit`/`minmax` columns. | **CSS Grid Items Overflowing Container / Not Responsive** — fixed widths or rigid content; recommends responsive auto-fit columns and `minmax`. | PASS | No change; correct on the initial exact-input run. |
+| 14 | `position: sticky does not work` | Identify a missing threshold or clipping/scrolling ancestor; inspect `top` and ancestor overflow. | **CSS position: sticky Not Working (Element Scrolls Away)** — missing threshold or ancestor overflow; recommends `top: 0` and checking scroll containers. | PASS | No change; correct on the initial exact-input run. |
+| 15 | `My form submits and reloads the page unexpectedly` | Identify default submit-button behavior; recommend `type="button"` or handling form submit with `preventDefault()`. | **Form Button Reloads Page / Submits on Click** — button defaults to submit; recommends explicit button type or form `onSubmit` handling. | PASS | No change; correct on the initial exact-input run. |
+| 16 | `A div cannot be nested inside a paragraph` | Identify invalid HTML phrasing-content nesting; replace the paragraph or nested block element. | **HTML Nesting Violation: \`<p>\` cannot contain \`<div>\` or Block Elements** — a paragraph cannot contain block content; recommends changing the wrapper/child element. | PASS | No change; correct on the initial exact-input run. |
+| 17 | `My API endpoint returns 404` | Identify an incorrect endpoint/base path or missing server route; inspect the requested URL. | **HTTP 404 Not Found on API Fetch or SPA Client-Side Route Refresh** — endpoint/base path typo or missing SPA fallback; recommends inspecting URL and route configuration. | PASS | No change; correct on the initial exact-input run. |
+| 18 | `My API returns 500 Internal Server Error` | Identify a backend exception; inspect server response/logs and handle non-OK responses. | **HTTP 500 Internal Server Error & Handling Unhandled Rejections** — backend exception/crash; recommends inspecting response details and checking `response.ok`. | PASS | No change; correct on the initial exact-input run. |
+| 19 | `The response is an object, but my code expects an array` | Identify an API response-shape mismatch; inspect the JSON and map the actual collection property. | **API Response Shape Mismatch: Object Returned Instead of Array** — API returns an object/wrapper but the frontend assumes an array; recommends inspecting shape, selecting the collection property, and validating with `Array.isArray()`. | PASS | **Fixed after initial failure:** added a specific knowledge-base diagnosis and trigger patterns. |
+| 20 | `My frontend gets an HTML page instead of JSON` | Identify an API request receiving HTML (wrong route, redirect, or SPA fallback); inspect URL/status/content type. | **API Returned HTML Instead of JSON** — wrong URL, auth redirect, or frontend HTML fallback; recommends inspecting redirects/content type and separating API routes from SPA fallback. | PASS | **Fixed after initial failure:** added a distinct HTML-response diagnosis rather than relying on the JSON parse error entry. |
+| 21 | `An older API response overwrites the latest search results` | Identify an out-of-order fetch race; cancel or ignore stale requests. | **Race Condition in Fetch Requests: Out-of-Order API Responses** — slower request overwrites newer state; recommends `AbortController` and cleanup. | PASS | Added an exact trigger after the stricter match threshold initially rejected this wording. |
+| 22 | `The browser reports mixed content on an HTTPS page` | Identify insecure HTTP resources on an HTTPS page; use HTTPS or a relative URL. | **Mixed Content: Insecure HTTP Request on Secure HTTPS Page** — HTTPS page requests an HTTP resource; recommends upgrading the resource URL. | PASS | No change; correct on the initial exact-input run. |
+| 23 | `The browser blocks my inline script` | Identify a CSP restriction; move the script out of inline code or configure a nonce/hash. | **Content Security Policy (CSP) Violation: Blocked Inline Script or Font** — CSP disallows the inline script; recommends an external bundle or nonce/hash. | PASS | No change; correct on the initial exact-input run. |
+| 24 | `localStorage.setItem throws QuotaExceededError` | Identify exhausted browser storage quota; catch the exception and reduce/move stored data. | **DOMException: QuotaExceededError in localStorage.setItem()** — localStorage quota exceeded; recommends try/catch, eviction, or IndexedDB. | PASS | No change; correct on the initial exact-input run. |
+| 25 | `A custom WebAssembly pipeline reports an unfamiliar error` | State uncertainty and request more evidence; do not claim an unrelated known error. | **Uncatalogued Frontend Issue (General Diagnostics)** — explicitly says it is not completely certain and gives general investigation steps; no longer labels the issue as HTTP 500. | PASS | **Fixed after initial false match:** raised the minimum match score from 8 to 12 to avoid matching on generic “error” overlap. |
 
----
+## Reproduction
 
-## 2. Mandatory Prompt Test Cases (Team B)
-
-Each test query was evaluated against the RAG diagnostic search engine for classification accuracy, cause explanation, actionable numbered fix steps, code diff, and official documentation linkage.
-
-### Test Case 1: React Undefined Property Crash
-- **Input Query:** `"Cannot read properties of undefined (reading 'map')"`
-- **Detected Category:** `JavaScript & React`
-- **Output Title:** `TypeError: Cannot read properties of undefined (reading 'map')`
-- **Likely Cause:** State was initialized as `undefined` while awaiting asynchronous API resolution.
-- **Fix Steps:**
-  1. Default to empty array: `useState([])`.
-  2. Optional chaining: `items?.map(...)`.
-  3. Guard clause while loading.
-- **Official Doc:** MDN Web Docs (`Array.prototype.map() & Optional Chaining`)
-- **Status:** ✅ PASS
-
----
-
-### Test Case 2: Cross-Origin Resource Sharing (CORS)
-- **Input Query:** `"CORS policy blocked my request"`
-- **Detected Category:** `API Integration & Network`
-- **Output Title:** `CORS Policy Blocked: No 'Access-Control-Allow-Origin' Header`
-- **Likely Cause:** Backend server did not return `Access-Control-Allow-Origin` matching client origin (`http://localhost:3000`).
-- **Fix Steps:**
-  1. Configure local reverse proxy in `vite.config.ts`.
-  2. Configure server CORS headers for production.
-  3. Set allowed headers for authorization.
-- **Official Doc:** MDN Web Docs (`Cross-Origin Resource Sharing`)
-- **Status:** ✅ PASS
-
----
-
-### Test Case 3: CSS Layout & Centering
-- **Input Query:** `"My div is not centered"`
-- **Detected Category:** `CSS Layout & Styling`
-- **Output Title:** `CSS Centering: Div or Modal Not Centered on Screen`
-- **Likely Cause:** Parent container lacks explicit height (`min-height: 100vh` or `100dvh`), or child margins in normal flow do not collapse vertically.
-- **Fix Steps:**
-  1. CSS Grid on parent: `display: grid; place-items: center; min-height: 100vh;`.
-  2. Flexbox alternative: `display: flex; justify-content: center; align-items: center;`.
-- **Official Doc:** MDN Web Docs (`Centering in CSS`)
-- **Status:** ✅ PASS
-
----
-
-### Test Case 4: React Infinite Loop
-- **Input Query:** `"useEffect runs in an infinite loop"`
-- **Detected Category:** `React & Hooks`
-- **Output Title:** `Too Many Re-renders: useEffect Runs in an Infinite Loop`
-- **Likely Cause:** `setState` called directly during render or dependency array mutates on every render cycle.
-- **Fix Steps:**
-  1. Never call `setState` unconditionally in render body.
-  2. Pass empty dependency array `[]` for mount-only side effects.
-  3. Use functional updates: `setCount(prev => prev + 1)` instead of adding `count` to dependencies.
-- **Official Doc:** React.dev (`You Might Not Need an Effect`)
-- **Status:** ✅ PASS
-
----
-
-## 3. Privacy Shield & Security Tests
-
-Testing privacy scrubbing with sensitive production tokens:
-- **Test Payload:**
-  ```text
-  Error fetching user with Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.t-ae
-  and api key sk-998877665544332211001122 with password: SuperSecretPassword123
-  contact admin at dev@company.com
-  ```
-- **Result:**
-  ```text
-  Error fetching user with Bearer [REDACTED_JWT]
-  and api key [REDACTED_API_KEY] with password: [REDACTED_SECRET]
-  contact admin at [REDACTED_EMAIL]
-  ```
-- **Redactions Count:** 4
-- **Leakage:** 0%
-- **Status:** ✅ PASS
-
----
-
-## 4. Log File Extraction Tests
-
-Tested with real browser console dump:
-- **Analyzed Lines:** 5
-- **Error Lines Detected:** 2
-- **Extracted Errors:**
-  1. `Uncaught TypeError: Cannot read properties of undefined (reading 'map')`
-  2. `Access to fetch has been blocked by CORS policy`
-- **Status:** ✅ PASS
-
----
-
-## 5. Automated Unit Test Execution Log
-
-```
-Ran 7 tests in 0.024s
-
-test_engine.TestDiagnosticEngine.test_knowledge_base_count ... ok
-test_engine.TestDiagnosticEngine.test_required_team_b_examples ... ok
-test_engine.TestDiagnosticEngine.test_top_10_presets ... ok
-test_engine.TestDiagnosticEngine.test_insufficient_vague_input_handling ... ok
-test_engine.TestDiagnosticEngine.test_uncertainty_handling ... ok
-test_engine.TestDiagnosticEngine.test_privacy_scrubbing ... ok
-test_engine.TestDiagnosticEngine.test_log_file_analyzer ... ok
-
-----------------------------------------------------------------------
-OK
-```
+The exact inputs and assertions are maintained in [test_initial_checklist.py](../backend/tests/test_initial_checklist.py). The test suite verifies the returned title, cause, and a relevant fix step for each known case. For case 25 it verifies that FrontFix returns an uncertain, uncatalogued diagnosis rather than falsely matching a specific issue.

@@ -7,13 +7,13 @@
     "problem": "An attempt to execute .map() was made on a variable that is undefined or null during render.",
     "likely_cause": "The list state is populated asynchronously (e.g. from an API call) and defaults to undefined on initial mount, causing the component to crash before the fetch completes.",
     "fix_steps": [
-      "1. Provide a safe initial state of an empty array: `useState([])` instead of `useState()`.",
-      "2. Add optional chaining (`items?.map(...)`) or an explicit guard clause (`if (!items) return <Spinner />;`).",
-      "3. Verify that the API response actually returns an array rather than an object containing the array (e.g., `res.data.items`)."
+      "1. Explicitly track distinct `loading`, `error`, and `data` states with `useState`.",
+      "2. Render a loading indicator only while `loading` is true, and handle empty result arrays (`items.length === 0`) with a 'No items found' message instead of getting trapped in a loading state.",
+      "3. Initialize the array safely (`useState([])`) and verify that the API payload is actually an array (`Array.isArray(data)`) before updating state."
     ],
     "file_hint": "src/components/ItemList.jsx",
-    "code_before": "// ❌ Broken: state starts as undefined, rendering throws error\nconst [items, setItems] = useState();\nreturn (\n  <ul>\n    {items.map(item => <li key={item.id}>{item.name}</li>)}\n  </ul>\n);",
-    "code_after": "// ✅ Fixed: default to empty array and guard render\nconst [items, setItems] = useState([]);\nif (!items || items.length === 0) return <p>Loading items...</p>;\nreturn (\n  <ul>\n    {items?.map(item => <li key={item.id}>{item.name}</li>)}\n  </ul>\n);",
+    "code_before": "// ❌ Broken: items is undefined initially, or empty array traps loading\nconst [items, setItems] = useState();\n\nreturn (\n  <ul>\n    {items.map(item => <li key={item.id}>{item.name}</li>)}\n  </ul>\n);",
+    "code_after": "// ✅ Fixed: Separate loading, error, and empty result states\nconst [items, setItems] = useState([]);\nconst [loading, setLoading] = useState(true);\nconst [error, setError] = useState(null);\n\nif (loading) return <p>Loading items...</p>;\nif (error) return <p>Error: {error}</p>;\nif (items.length === 0) return <p>No items found.</p>;\n\nreturn (\n  <ul>\n    {items.map(item => (\n      <li key={item.id}>{item.name}</li>\n    ))}\n  </ul>\n);",
     "extra_tips": "TypeScript can catch this at compile time: define your state type explicitly with `useState<Item[]>([])`. When working with nested payloads, use `Array.isArray(data)` before mapping.",
     "prevention_checklist": [
       "Always initialize collection state with [] instead of undefined/null.",
@@ -429,7 +429,7 @@
     "id": "fetch_race_condition",
     "category": "API Integration & React",
     "title": "Race Condition in Fetch Requests: Out-of-Order API Responses",
-    "trigger_patterns": ["race condition", "fast typing search wrong result", "abortcontroller", "out of order response", "cancel previous request"],
+    "trigger_patterns": ["race condition", "fast typing search wrong result", "abortcontroller", "out of order response", "cancel previous request", "older api response overwrites latest search results"],
     "problem": "When typing quickly in a search bar or switching tabs rapidly, an earlier slow API request resolves AFTER a later fast request, displaying outdated results.",
     "likely_cause": "Network latency is non-deterministic; without cancellation, the slowest request overwrites the most recent request's state.",
     "fix_steps": [
@@ -800,5 +800,55 @@
     "related_issues": ["cors_policy_blocked", "api_500_internal_error"],
     "source_title": "MDN Web Docs — Access-Control-Allow-Credentials",
     "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials"
+  },
+  {
+    "id": "api_response_object_expected_array",
+    "category": "API Integration & Data Handling",
+    "title": "API Response Shape Mismatch: Object Returned Instead of Array",
+    "trigger_patterns": ["response is an object but my code expects an array", "api returns object instead of array", "expected array got object", "response object expected array", "map is not a function response object"],
+    "problem": "The frontend treats an API response object as an array, for example calling `.map()` directly on a response that contains an object or nested collection.",
+    "likely_cause": "The endpoint returns a JSON object or wrapper (often with the collection under a property such as `data`, `items`, or `results`), while the frontend assumes the top-level response is an array.",
+    "fix_steps": [
+      "1. Inspect the actual response body in DevTools Network and confirm its JSON shape.",
+      "2. Read the collection property that the API returns (for example `payload.items`) instead of mapping over the whole response object.",
+      "3. Validate the value with `Array.isArray()` before rendering, and report an unexpected response shape rather than silently treating it as an empty list."
+    ],
+    "file_hint": "src/services/api.ts",
+    "code_before": "const response = await fetch('/api/items');\nconst items = await response.json();\nreturn items.map(renderItem);",
+    "code_after": "const response = await fetch('/api/items');\nconst payload = await response.json();\nconst items = payload.items;\nif (!Array.isArray(items)) throw new TypeError('Expected an items array');\nreturn items.map(renderItem);",
+    "extra_tips": "Define a TypeScript type for the API response envelope so the collection property is explicit.",
+    "prevention_checklist": [
+      "Document the API response schema.",
+      "Validate API data at the network boundary.",
+      "Use generated or shared response types when available."
+    ],
+    "related_issues": ["typeerror_map", "json_parse_error"],
+    "source_title": "MDN Web Docs — Working with JSON",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON"
+  },
+  {
+    "id": "api_html_instead_of_json",
+    "category": "API Integration & Network",
+    "title": "API Returned HTML Instead of JSON",
+    "trigger_patterns": ["my frontend gets an html page instead of json", "api returns html instead of json", "html response expected json", "frontend receives html not json", "response content type text/html api"],
+    "problem": "A frontend API request receives an HTML document where the client expects a JSON API response.",
+    "likely_cause": "The request may target the wrong URL, be redirected to a login page, or fall through to the single-page application's HTML fallback instead of reaching the API route.",
+    "fix_steps": [
+      "1. Inspect the request URL, status, redirect chain, response body, and `Content-Type` in the DevTools Network panel.",
+      "2. Correct the API base URL or route, and verify that authentication redirects are not returning an HTML login page to the API client.",
+      "3. Configure the web server so API paths return API responses or a clear 404, while only frontend routes fall back to `index.html`; check `response.ok` and content type before parsing JSON."
+    ],
+    "file_hint": "src/services/api.ts",
+    "code_before": "const data = await fetch('/api/items').then(response => response.json());",
+    "code_after": "const response = await fetch('/api/items');\nconst contentType = response.headers.get('content-type') || '';\nif (!response.ok || !contentType.includes('application/json')) {\n  throw new Error(`Expected JSON from /api/items; received ${response.status} ${contentType}`);\n}\nconst data = await response.json();",
+    "extra_tips": "A `200` status does not guarantee the body is JSON; single-page app fallback routes and authentication redirects can return HTML successfully.",
+    "prevention_checklist": [
+      "Keep API and frontend route fallbacks separate.",
+      "Test API base URLs in the deployed environment.",
+      "Validate response status and content type before parsing."
+    ],
+    "related_issues": ["json_parse_error", "api_404_not_found"],
+    "source_title": "MDN Web Docs — Using Fetch",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch"
   }
 ]

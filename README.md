@@ -4,136 +4,118 @@
 
 [![Team](https://img.shields.io/badge/Team-Team_B_(Frontend)-0284c7?style=for-the-badge&logo=react)](https://github.com/AdnanAK8/FrontFix)
 [![Knowledge Base](https://img.shields.io/badge/Knowledge_Base-32_Canonical_Issues-10b981?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
+[![AI Grounding](https://img.shields.io/badge/AI_Model-Gemini_1.5_Flash-4285f4?style=for-the-badge&logo=google)](https://github.com/AdnanAK8/FrontFix)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_0.135-009688?style=for-the-badge&logo=fastapi)](https://github.com/AdnanAK8/FrontFix)
 [![Docker](https://img.shields.io/badge/Deployment-Docker_Compose-2496ed?style=for-the-badge&logo=docker)](https://github.com/AdnanAK8/FrontFix)
-[![Tests](https://img.shields.io/badge/Tests-7_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
+[![Tests](https://img.shields.io/badge/Tests-40_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
 
 ---
 
 ## 📌 1. Project Overview
 
-Developers lose significant time searching the web for frontend errors. **FrontFix AI** functions as an automated senior technical support engineer: it understands frontend errors, performs fast token-scored search across a verified canonical knowledge base, and outputs clean, structured solutions with zero cognitive overload.
+Developers lose significant time searching the web for frontend errors. **FrontFix AI** functions as an automated senior technical support engineer: it understands frontend errors, performs genuine **TF-IDF Cosine Similarity Search** across a verified 32-issue canonical knowledge base, and utilizes **Google Gemini** to synthesize clear, step-by-step fix instructions.
 
-### Built for Team B Problem Scope:
-- **JavaScript & TypeScript Errors**: Undefined/null property access, unhandled promise rejections, type coercion issues, NaN calculations.
-- **React & Hooks Lifecycle**: Infinite render loops (`useEffect`), hydration mismatches (SSR), rules of hooks violations, missing keys, uncontrolled/controlled input shifts.
-- **CSS & Layout Engineering**: Centering bugs (`place-items: center`), `z-index` stacking context traps, flexbox overflow & ellipsis truncation, grid responsiveness, margin collapse, dynamic viewport height (`100dvh`).
-- **HTML & Accessibility**: Button form reload defaults, invalid element nesting (`<p>` inside `<div>`), missing form labels, Cumulative Layout Shift (CLS).
-- **API Integration & Network**: CORS policy blocking, HTTP 404/500 diagnostics, JSON parse errors (`Unexpected token '<'`), fetch race conditions (`AbortController`).
-- **Browser Console & Web APIs**: Content Security Policy (CSP) violations, Mixed Content HTTPS warnings, `localStorage` quota exceptions.
-
----
-
-## 🎯 2. Key Requirements & Implementation
-
-| Requirement | Implementation Detail | Status |
-| :--- | :--- | :--- |
-| **Chat Interface** | Clean, distraction-free conversational studio with code formatting | ✅ Complete |
-| **Knowledge Base** | **32 fully indexed frontend issues** with root causes, fixes, and docs | ✅ Complete |
-| **Grounded Search** | High-precision TF-IDF token scoring over triggers, titles, and causes | ✅ Complete |
-| **4-Part Output Format** | **Problem**, **Likely Cause**, **Fix Steps** (numbered), **Extra Tips** | ✅ Complete |
-| **Feedback Option** | Interactive **Thumbs Up (👍)** / **Thumbs Down (👎)** with API feedback logging | ✅ Complete |
-| **Vague Input Handling** | Prompts follow-up question when user query lacks context or stack trace | ✅ Complete |
-| **Uncertainty Handling** | Explicitly declares low confidence and links directly to official docs | ✅ Complete |
-| **Log File Upload (Bonus)**| Parses `.log`, `.txt`, `.json` files, extracts stack traces, summarizes fixes | ✅ Complete |
-| **Conversation Memory** | Remembers earlier messages in the active session | ✅ Complete |
-| **Docker Packaging** | Includes production-ready `Dockerfile` and `docker-compose.yml` | ✅ Complete |
-| **Safety & Privacy** | Real-time regex sanitization of Bearer tokens, API keys, passwords | ✅ Complete |
+### Intended Diagnostic Flow:
+1. **Developer enters error or code**: Pastes a stack trace, console error, or asks a technical question.
+2. **FastAPI receives & sanitizes**: Real-time regex masks strip Bearer JWT tokens, API keys, passwords, and emails.
+3. **True TF-IDF Cosine Search**: Computes token term frequency & inverse document frequency vectors, retrieving canonical fixes.
+4. **Gemini Explains Retrieved Information**: Gemini receives the user's error and retrieved canonical issue details to generate the explanation.
+5. **Structured Answer + Source Links + Feedback**: Produces the required 4-part response (Problem, Likely cause, Fix steps, Extra tips) with official documentation links and thumbs up/down rating.
+6. **Transparent Provenance**: Responses are clearly labelled as `✨ AI Explained (Gemini)` or `📚 Verified Knowledge Base` (when offline or fallback).
 
 ---
 
-## 🏗️ 3. How It Works (5-Stage Pipeline)
+## 🎯 2. Five Critical Fixes & Improvements
 
-```
-1. Receive   --> User inputs error message, stack trace, or uploads log file
-                    │
-2. Sanitize  --> Privacy Shield masks JWTs, API keys (sk-, ghp_), passwords
-                    │
-3. Understand--> Evaluates query specifics (asks follow-up if input is vague)
-                    │
-4. Search    --> RAG TF-IDF ranking over 32 verified canonical frontend issues
-                    │
-5. Guide     --> Outputs 4-part structured response + Before/After code diff + Thumbs rating
-```
-
-### Response Format Standard:
-Every diagnostic response follows the mandated 4-part structure:
-1. **🔍 Problem**: Clear synopsis of what failed.
-2. **⚡ Likely Cause**: Technical root-cause explanation.
-3. **🛠️ Fix Steps**: Actionable numbered steps with before/after code diffs.
-4. **💡 Extra Tips**: Best practices, performance notes, and prevention checklist.
-5. **❓ Resolution Confirmation**: *"Did this resolve your issue?"* with 👍 / 👎 buttons.
+| Area | Implementation & Resolution Detail |
+| :--- | :--- |
+| **1. Real AI Model Grounding** | Integrated Google Gemini 1.5 Flash in `backend/app/llm.py`. Injects retrieved canonical knowledge into the prompt so Gemini explains the exact problem and fix steps. If the API is unreachable, it returns a transparently labelled knowledge-base answer (`generated_by: "knowledge_base"`). |
+| **2. Deployed Frontend API URL** | Added `resolveBackendUrl()` in `frontend/app.js` using `FRONTFIX_CONFIG`. Supports local development on `127.0.0.1:8000`, single-container Docker mounts via `window.location.origin`, and deployed HTTPS API endpoints (Render/Vercel) without hardcoding localhost for external classmates. |
+| **3. Production-Safe CORS** | Replaced wildcard credentials with an explicit origin whitelist (`http://127.0.0.1:8000`, `http://localhost:8000`, `http://localhost:5173`, etc.) and `allow_credentials=False` in `backend/app/main.py`. Configurable via `ALLOWED_ORIGINS` in `.env`. |
+| **4. Log Upload Privacy & Hardening** | In `backend/app/engine.py`, the entire log file is sanitized with regex masks **before** error extraction. Analyzes only sanitized lines, enforces a strict **2MB upload limit** (HTTP 413), blocks binary executables, and returns sanitized snippets with zero token leakage. |
+| **5. Corrected React `.map()` Fix** | Updated `typeerror_map` in both `backend/app/knowledge.json` and `frontend/app.js` to properly decouple `loading`, `error`, and empty array (`items.length === 0`) states instead of trapping the UI in permanent loading. |
+| **A. True TF-IDF Cosine Search** | Built mathematical TF-IDF vectorization with inverse document frequency $IDF = \ln((N+1)/(DF+1)) + 1$ and cosine similarity $\cos(\vec{Q}, \vec{D})$ across all 32 knowledge base articles. |
+| **B. Real Multi-Turn Memory** | The engine inspects `conversation_history`. When a user asks follow-up questions (e.g. *"What should I check next?"* or *"How do I fix this in TypeScript?"*), the prior diagnosed context is passed into the prompt to generate tailored advice. |
 
 ---
 
-## 📂 4. Repository Structure
+## 📂 3. Repository Structure
 
 ```
 front-fix/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py            # FastAPI REST endpoints & static mount
-│   │   ├── engine.py          # TF-IDF search, privacy scrubber & log parser
+│   │   ├── main.py            # FastAPI REST endpoints & production CORS
+│   │   ├── engine.py          # TF-IDF cosine search, privacy scrubber & log parser
+│   │   ├── llm.py             # Grounded Google Gemini / OpenAI client
 │   │   └── knowledge.json     # 32 curated frontend error resolutions
 │   ├── tests/
-│   │   └── test_engine.py     # Automated unit test suite (7 tests)
-│   ├── requirements.txt       # Dependencies (fastapi, uvicorn, pydantic)
+│   │   ├── test_engine.py             # Baseline engine tests (7 tests)
+│   │   └── test_twenty_plus_suite.py  # 33 comprehensive real-world tests
+│   ├── requirements.txt       # Dependencies (fastapi, uvicorn, pydantic, dotenv)
 │   └── run.py                 # Backend launcher (http://127.0.0.1:8000)
 │
 ├── frontend/
 │   ├── index.html             # Conversational interface with presets & upload
 │   ├── style.css              # Minimalist theme (dark mode, calm typography)
-│   ├── app.js                 # Frontend application logic & offline RAG fallback
+│   ├── app.js                 # Frontend application logic & offline fallback
 │   └── package.json           # Frontend metadata
 │
 ├── docs/
-│   ├── ARCHITECTURE.md        # Technical architecture specification
+│   ├── ARCHITECTURE.md        # Technical architecture specification & diagrams
 │   ├── IMPLEMENTATION_PLAN.md # 6-phase engineering roadmap
 │   ├── RESEARCH_REPORT.md     # Frontend error taxonomy research
-│   ├── TEST_REPORT.md         # Phase 6 verification report
+│   ├── TEST_REPORT.md         # Verification report with 40 passing tests
 │   └── PRESENTATION_SLIDES_OUTLINE.md
 │
 ├── Dockerfile                 # Container image specification
 ├── docker-compose.yml         # Container deployment configuration
 ├── .dockerignore              # Container exclusions
-├── .env.example               # Environment variables template
+├── .env.example               # Environment variables template (placeholders only)
 ├── run.bat                    # One-click Windows starter
 └── README.md                  # Complete documentation
 ```
 
 ---
 
-## 🚀 5. Quick Start Guide
+## 🚀 4. Quick Start Guide
 
-### Option 1: One-Click Windows Launcher
+### Step 1: Clone & Configure `.env`
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+Add your Google Gemini API key if you want live AI explanations (otherwise it runs using the verified knowledge base):
+```ini
+GEMINI_API_KEY=AIzaSyYourActualKeyHere
+PORT=8000
+HOST=127.0.0.1
+```
+*(Note: `.env` is excluded from git via `.gitignore` and is never uploaded).*
+
+---
+
+### Step 2: Running via Python
+
+```bash
+cd backend
+pip install -r requirements.txt
+python run.py
+```
+- **Backend API**: `http://127.0.0.1:8000`
+- **Swagger Docs**: `http://127.0.0.1:8000/docs`
+- **Mounted Web UI**: `http://127.0.0.1:8000/ui`
+
+---
+
+### Step 3: One-Click Windows Launcher
 Double-click `run.bat` in the root folder. It starts the backend API and opens the frontend UI in your browser.
 
 ---
 
-### Option 2: Running via Python
-
-#### 1. Install Dependencies:
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-#### 2. Start Backend Server:
-```bash
-python run.py
-```
-- API Server: `http://127.0.0.1:8000`
-- Interactive Swagger Docs: `http://127.0.0.1:8000/docs`
-- Mounted Web UI: `http://127.0.0.1:8000/ui`
-
-#### 3. Open Frontend:
-Open `frontend/index.html` directly in any browser (or access `http://127.0.0.1:8000/ui`).
-
----
-
-### Option 3: Docker Deployment
-Run with a single command:
+### Step 4: Docker Deployment
+Run the full-stack app with a single command:
 ```bash
 docker compose up --build
 ```
@@ -141,23 +123,24 @@ Access the application at `http://localhost:8000/ui`.
 
 ---
 
-## 🧪 6. Running Unit Tests
+## 🧪 5. Running Automated Unit Tests
 
-Run the full automated test suite verifying knowledge base integrity, the 4 prompt cases, privacy scrubbing, log parsing, and search scoring:
+Run the full 40-test automated suite verifying the 20+ real developer questions, multi-turn memory, log file size limits, privacy scrubbing, and true TF-IDF ranking:
 
 ```bash
-python -m unittest backend.tests.test_engine
+python -m unittest discover -s backend/tests
 ```
 
 **Test Output:**
-```
-Ran 7 tests in 0.024s
+```text
+Ran 40 tests in 40.064s
+
 OK
 ```
 
 ---
 
-## 📚 7. Curated Knowledge Base (32 Issues Catalog)
+## 📚 6. Curated Knowledge Base (32 Issues Catalog)
 
 | # | Category | Issue Title | Canonical Source |
 |---|:---|:---|:---|
@@ -196,19 +179,19 @@ OK
 
 ---
 
-## 🔒 8. Safety & Privacy Compliance
+## 🔒 7. Safety & Privacy Compliance
 
-- **No Risky Execution**: The chatbot suggests commands and configuration files but never executes destructive shell operations (e.g. `rm -rf`, `DROP TABLE`).
 - **DLP Privacy Scrubbing**: Client and server side regex masks strip:
   - Bearer JWT tokens (`Bearer [REDACTED_JWT]`)
-  - API Keys (`[REDACTED_API_KEY]`)
+  - API Keys (`[REDACTED_API_KEY]`) including OpenAI `sk-` and Google `AIza...`
   - Passwords and secrets (`[REDACTED_SECRET]`)
   - Sensitive emails (`[REDACTED_EMAIL]`)
-- **Key Hygiene**: All secrets and optional LLM keys are configured in `.env` (included in `.gitignore` and never committed to source control).
+- **No Risky Execution**: The chatbot suggests commands and configuration files but never executes destructive shell operations (e.g. `rm -rf`, `DROP TABLE`).
+- **Key Hygiene**: `.env` is strictly excluded from Git; `.env.example` contains placeholders only.
 
 ---
 
-## 👥 9. Team B Contributors
+## 👥 8. Team B Contributors
 - **Project**: AI-Powered Chatbots for Technical Issue Resolution
 - **Track**: Team B (Frontend Support Chatbot)
 - **Author**: Adnan Akhtar ([@AdnanAK8](https://github.com/AdnanAK8/FrontFix))

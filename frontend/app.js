@@ -1,10 +1,37 @@
 // FrontFix AI — Frontend Application Logic (Team B)
 // ponytail: Clean vanilla JavaScript with native Web APIs (Fetch, FileReader, Clipboard). Zero bulky runtime frameworks.
 
-// ponytail: Auto-detect origin when served via FastAPI /ui, fallback to local backend port 8000
-const BACKEND_URL = (window.location.origin && window.location.origin.startsWith('http')) 
-  ? (window.location.port === '8000' ? window.location.origin : 'http://127.0.0.1:8000') 
-  : 'http://127.0.0.1:8000';
+// ponytail: Configurable API endpoint supporting local dev, same-origin deployed bundles, and external production APIs
+const FRONTFIX_CONFIG = {
+  // Production API URL when frontend is hosted separately (e.g. GitHub Pages or Vercel)
+  PROD_API_URL: window.__FRONTFIX_API_URL__ || 'https://frontfix-api.onrender.com',
+  LOCAL_API_URL: 'http://127.0.0.1:8000'
+};
+
+function resolveBackendUrl() {
+  // 1. Explicit global runtime override if defined:
+  if (window.__FRONTFIX_API_URL__) return window.__FRONTFIX_API_URL__;
+
+  // 2. Local development check (file:// or localhost/127.0.0.1)
+  const hostname = window.location.hostname;
+  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1' || window.location.protocol === 'file:') {
+    if (window.location.port === '8000') {
+      return window.location.origin;
+    }
+    return FRONTFIX_CONFIG.LOCAL_API_URL;
+  }
+
+  // 3. Deployed production environment:
+  // If static site (like GitHub Pages or Netlify), connect to the production HTTPS API:
+  if (window.location.origin.includes('github.io') || window.location.origin.includes('netlify.app')) {
+    return FRONTFIX_CONFIG.PROD_API_URL;
+  }
+
+  // If served directly from same-origin backend (e.g., Docker / Render / Railway):
+  return window.location.origin;
+}
+
+const BACKEND_URL = resolveBackendUrl();
 let isBackendOnline = false;
 let conversationHistory = [];
 
@@ -23,13 +50,13 @@ const OFFLINE_KNOWLEDGE = [
     problem: "An attempt to execute .map() was made on a variable that is undefined or null during render.",
     likely_cause: "The list state is populated asynchronously (e.g. from an API call) and defaults to undefined on initial mount, causing the component to crash before the fetch completes.",
     fix_steps: [
-      "1. Provide a safe initial state of an empty array: useState([]) instead of useState().",
-      "2. Add optional chaining (items?.map(...)) or an explicit guard clause (if (!items) return <Spinner />;).",
-      "3. Verify that the API response actually returns an array rather than an object containing the array."
+      "1. Explicitly track distinct loading, error, and data states with useState.",
+      "2. Render a loading indicator only while loading is true, and handle empty result arrays (items.length === 0) with a 'No items found' message instead of getting trapped in a loading state.",
+      "3. Initialize the array safely (useState([])) and verify that the API payload is actually an array (Array.isArray(data)) before updating state."
     ],
     file_hint: "src/components/ItemList.jsx",
-    code_before: "// ❌ Broken: state starts as undefined\nconst [items, setItems] = useState();\nreturn <ul>{items.map(i => <li key={i.id}>{i.name}</li>)}</ul>;",
-    code_after: "// ✅ Fixed: default to empty array and guard render\nconst [items, setItems] = useState([]);\nif (!items || items.length === 0) return <p>Loading items...</p>;\nreturn <ul>{items?.map(i => <li key={i.id}>{i.name}</li>)}</ul>;",
+    code_before: "// ❌ Broken: items is undefined initially, or empty array traps loading\nconst [items, setItems] = useState();\n\nreturn (\n  <ul>\n    {items.map(item => <li key={item.id}>{item.name}</li>)}\n  </ul>\n);",
+    code_after: "// ✅ Fixed: Separate loading, error, and empty result states\nconst [items, setItems] = useState([]);\nconst [loading, setLoading] = useState(true);\nconst [error, setError] = useState(null);\n\nif (loading) return <p>Loading items...</p>;\nif (error) return <p>Error: {error}</p>;\nif (items.length === 0) return <p>No items found.</p>;\n\nreturn (\n  <ul>\n    {items.map(item => (\n      <li key={item.id}>{item.name}</li>\n    ))}\n  </ul>\n);",
     extra_tips: "TypeScript can catch this at compile time: define your state type explicitly with useState<Item[]>([]).",
     source: { title: "MDN Web Docs — Array.prototype.map() & Optional Chaining", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map" }
   },
@@ -235,6 +262,12 @@ async function handleFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  // Enforce 2MB maximum limit on client side
+  if (file.size > 2 * 1024 * 1024) {
+    alert("File exceeds maximum allowed size of 2MB. Please upload a smaller log snippet.");
+    return;
+  }
+
   showToast(`Analyzing log file: ${file.name}...`);
   document.getElementById('hero-view').style.display = 'none';
   const stream = document.getElementById('chat-stream');
@@ -253,6 +286,10 @@ async function handleFileSelected(event) {
       if (res.ok) {
         const json = await res.json();
         renderLogSummary(json.filename, json.analysis);
+        return;
+      } else {
+        const errJson = await res.json();
+        alert(`Log upload rejected: ${errJson.detail || 'Upload failed'}`);
         return;
       }
     } catch (err) {
@@ -543,7 +580,14 @@ function appendBotResponse(data, originalQuery) {
   // Uncertainty disclaimer badge
   const uncertaintyBadge = data.is_uncertain 
     ? `<span class="uncertain-badge">⚠️ Low Confidence — Review Docs</span>`
-    : `<span style="font-size: 11px; color: var(--text-muted);">Verified Canonical Fix</span>`;
+    : '';
+
+  // Transparent attribution: Gemini AI vs Verified Knowledge Base
+  const provenanceBadge = data.model_label
+    ? `<span class="provenance-tag ${data.generated_by === 'gemini' ? 'ai-gen' : ''}">${escapeHtml(data.model_label)}</span>`
+    : (data.generated_by === 'gemini'
+        ? `<span class="provenance-tag ai-gen">✨ AI Explained (Gemini)</span>`
+        : `<span class="provenance-tag">📚 Verified Knowledge Base</span>`);
 
   // Prevention checklist (bonus)
   let preventionHtml = '';
@@ -562,6 +606,7 @@ function appendBotResponse(data, originalQuery) {
     <div class="bot-header">
       <div class="bot-header-left">
         <span class="category-tag">${escapeHtml(data.category || 'Frontend Support')}</span>
+        ${provenanceBadge}
         ${uncertaintyBadge}
       </div>
     </div>
