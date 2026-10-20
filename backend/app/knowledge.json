@@ -1,67 +1,804 @@
 [
   {
-    "id": "hydration",
-    "category": "React 19 / SSR",
-    "trigger_patterns": ["hydration failed", "server html", "did not match what was rendered on the server", "mismatch"],
-    "title": "React Hydration Mismatch (Server vs Client)",
-    "summary": "The server and client generated different HTML on initial render. This usually happens when client-only APIs (like localStorage, window.innerWidth, or new Date()) are evaluated directly in JSX before the component has mounted on the client.",
-    "file_hint": "Component.tsx",
-    "code_before": "// ❌ Broken: Evaluates different values on server vs client\nconst time = new Date().toLocaleTimeString();\nreturn <div>Current time: {time}</div>;",
-    "code_after": "// ✅ Fixed: Defer browser-dependent state until after mount\nconst [time, setTime] = useState<string | null>(null);\nuseEffect(() => {\n  setTime(new Date().toLocaleTimeString());\n}, []);\nreturn <div>Current time: {time ?? 'Loading...'}</div>;",
-    "explanation": "React SSR requires the initial client-side render to produce the exact same DOM structure as the server HTML. Wrapping the browser-specific logic in useEffect ensures it runs strictly after hydration is complete.",
-    "source_title": "React.dev — Understanding Hydration Errors",
-    "source_url": "https://react.dev/reference/react-dom/client/hydrateRoot"
+    "id": "typeerror_map",
+    "category": "JavaScript & React",
+    "title": "TypeError: Cannot read properties of undefined (reading 'map')",
+    "trigger_patterns": ["cannot read properties of undefined", "reading 'map'", ".map is not a function", "undefined (reading 'map')", "cannot read property 'map' of undefined"],
+    "problem": "An attempt to execute .map() was made on a variable that is undefined or null during render.",
+    "likely_cause": "The list state is populated asynchronously (e.g. from an API call) and defaults to undefined on initial mount, causing the component to crash before the fetch completes.",
+    "fix_steps": [
+      "1. Provide a safe initial state of an empty array: `useState([])` instead of `useState()`.",
+      "2. Add optional chaining (`items?.map(...)`) or an explicit guard clause (`if (!items) return <Spinner />;`).",
+      "3. Verify that the API response actually returns an array rather than an object containing the array (e.g., `res.data.items`)."
+    ],
+    "file_hint": "src/components/ItemList.jsx",
+    "code_before": "// ❌ Broken: state starts as undefined, rendering throws error\nconst [items, setItems] = useState();\nreturn (\n  <ul>\n    {items.map(item => <li key={item.id}>{item.name}</li>)}\n  </ul>\n);",
+    "code_after": "// ✅ Fixed: default to empty array and guard render\nconst [items, setItems] = useState([]);\nif (!items || items.length === 0) return <p>Loading items...</p>;\nreturn (\n  <ul>\n    {items?.map(item => <li key={item.id}>{item.name}</li>)}\n  </ul>\n);",
+    "extra_tips": "TypeScript can catch this at compile time: define your state type explicitly with `useState<Item[]>([])`. When working with nested payloads, use `Array.isArray(data)` before mapping.",
+    "prevention_checklist": [
+      "Always initialize collection state with [] instead of undefined/null.",
+      "Add TypeScript types to API response payloads.",
+      "Implement Skeleton or Loading state while network requests are pending."
+    ],
+    "related_issues": ["typeerror_null_property", "hydration_mismatch", "fetch_race_condition"],
+    "source_title": "MDN Web Docs — Array.prototype.map() & Optional Chaining",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map"
   },
   {
-    "id": "cors",
-    "category": "Network / CORS",
-    "trigger_patterns": ["cors policy", "access-control-allow-origin", "blocked by cors", "failed to fetch"],
-    "title": "Cross-Origin Resource Sharing (CORS) Blocked",
-    "summary": "The browser blocked this fetch request because the target API server did not return an Access-Control-Allow-Origin header matching your client origin (e.g., http://localhost:3000).",
-    "file_hint": "vite.config.ts (Development Fix)",
-    "code_before": "// ❌ Failing direct cross-origin request\nfetch('https://api.example.com/v1/users');",
-    "code_after": "// ✅ Fixed: Configure local reverse proxy in vite.config.ts\nexport default defineConfig({\n  server: {\n    proxy: {\n      '/api': {\n        target: 'https://api.example.com/v1',\n        changeOrigin: true,\n        rewrite: (path) => path.replace(/^\\/api/, '')\n      }\n    }\n  }\n});\n\n// Then fetch locally without CORS blocks:\nfetch('/api/users');",
-    "explanation": "During local development, browser CORS restrictions are best bypassed using a dev-server reverse proxy. In production, ensure the backend API sends the header: Access-Control-Allow-Origin: https://yourdomain.com.",
-    "source_title": "MDN Web Docs — CORS Overview",
+    "id": "cors_policy_blocked",
+    "category": "API Integration & Network",
+    "title": "CORS Policy Blocked: No 'Access-Control-Allow-Origin' Header",
+    "trigger_patterns": ["cors policy", "access-control-allow-origin", "blocked by cors", "cors policy blocked my request", "cross-origin request blocked"],
+    "problem": "The browser blocks client-side fetch/axios requests to a third-party or local backend API due to Same-Origin Policy enforcement.",
+    "likely_cause": "The target API server did not return an Access-Control-Allow-Origin header matching your web app's origin (e.g. http://localhost:3000 vs http://localhost:8000), or rejected the preflight OPTIONS request.",
+    "fix_steps": [
+      "1. For local development: configure a development proxy in `vite.config.ts` or `next.config.js` to route `/api/*` requests through the same origin.",
+      "2. For production: configure the backend server to include the CORS header `Access-Control-Allow-Origin: https://yourfrontend.com` and handle `OPTIONS` requests.",
+      "3. If sending Authorization headers or cookies, ensure backend sets `Access-Control-Allow-Headers: Authorization, Content-Type`."
+    ],
+    "file_hint": "vite.config.ts (Development Proxy)",
+    "code_before": "// ❌ Broken: Direct cross-origin request rejected by browser\nfetch('http://localhost:8000/api/users');",
+    "code_after": "// ✅ Fixed: Configure dev proxy in vite.config.ts\nimport { defineConfig } from 'vite';\nexport default defineConfig({\n  server: {\n    proxy: {\n      '/api': {\n        target: 'http://localhost:8000',\n        changeOrigin: true,\n      }\n    }\n  }\n});\n// Client code now requests same-origin:\nfetch('/api/users');",
+    "extra_tips": "CORS is an entirely browser-enforced security mechanism. Tools like Postman or curl will succeed because they are not running in a web browser context. Never use 'no-cors' mode expecting to read JSON data.",
+    "prevention_checklist": [
+      "Use Vite/Next.js reverse proxies during local development.",
+      "Ensure backend handles CORS middleware before any authentication middleware.",
+      "Never commit 'Access-Control-Allow-Origin: *' when using credentials."
+    ],
+    "related_issues": ["cors_credentials_wildcard", "api_404_not_found", "mixed_content_http_https"],
+    "source_title": "MDN Web Docs — Cross-Origin Resource Sharing (CORS)",
     "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
   },
   {
-    "id": "typeerror_map",
-    "category": "JavaScript / React",
-    "trigger_patterns": ["cannot read properties of undefined", "reading 'map'", ".map is not a function", "undefined (reading 'map')"],
-    "title": "TypeError: Cannot read properties of undefined (reading 'map')",
-    "summary": "You are calling .map() on a variable that is currently undefined or null. This usually occurs when rendering list state that has not finished loading from an asynchronous API request.",
-    "file_hint": "ItemList.jsx",
-    "code_before": "// ❌ Broken: items is initially undefined before API resolves\nconst [items, setItems] = useState();\nreturn <div>{items.map(item => <p key={item.id}>{item.name}</p>)}</div>;",
-    "code_after": "// ✅ Fixed: Initialize with empty array and use optional chaining\nconst [items, setItems] = useState([]);\nif (!items || items.length === 0) return <p>Loading items...</p>;\nreturn <div>{items?.map(item => <p key={item.id}>{item.name}</p>)}</div>;",
-    "explanation": "Always provide a safe default value (such as an empty array []) when declaring state that will hold a collection. Use optional chaining (?.) and explicit loading states to prevent render crashes.",
+    "id": "div_not_centered",
+    "category": "CSS Layout & Styling",
+    "title": "CSS Centering: Div or Modal Not Centered on Screen",
+    "trigger_patterns": ["my div is not centered", "div not centered", "center a div", "centering div", "center modal horizontally and vertically", "align center"],
+    "problem": "An HTML element fails to center horizontally or vertically within its parent container or the viewport.",
+    "likely_cause": "The parent element lacks explicit height (defaulting to content height 0), or flex/grid alignment properties were applied to the child instead of the parent container.",
+    "fix_steps": [
+      "1. Use CSS Grid on parent: `display: grid; place-items: center; min-height: 100vh;` (cleanest one-line solution).",
+      "2. Or use Flexbox on parent: `display: flex; justify-content: center; align-items: center; min-height: 100vh;`.",
+      "3. Ensure the parent container has an explicit height such as `min-height: 100vh` or `min-height: 100dvh`."
+    ],
+    "file_hint": "src/styles/layout.css",
+    "code_before": "/* ❌ Broken: Child margins or missing parent height */\n.parent {\n  width: 100%;\n}\n.child {\n  margin: auto; /* vertical auto margin does not work in normal flow */\n}",
+    "code_after": "/* ✅ Fixed: CSS Grid one-line centering */\n.parent {\n  display: grid;\n  place-items: center;\n  min-height: 100vh; /* or 100dvh for mobile */\n}\n.child {\n  max-width: 500px;\n  width: 100%;\n}",
+    "extra_tips": "For modern mobile browsers, prefer `min-height: 100dvh` over `100vh` to avoid content shifting when the URL bar collapses.",
+    "prevention_checklist": [
+      "Check if parent has height before trying to vertically center.",
+      "Apply flex/grid container properties to parent, not children.",
+      "Use modern CSS Grid place-items: center for fast layout."
+    ],
+    "related_issues": ["zindex_stacking_trap", "flexbox_overflow_ellipsis", "vh_mobile_addressbar"],
+    "source_title": "MDN Web Docs — Centering in CSS",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Learn/CSS/Howto/Center_an_item"
+  },
+  {
+    "id": "infinite_rerender",
+    "category": "React & Hooks",
+    "title": "Too Many Re-renders: useEffect Runs in an Infinite Loop",
+    "trigger_patterns": ["useeffect runs in an infinite loop", "too many re-renders", "infinite loop", "limits the number of renders", "maximum update depth exceeded", "useeffect infinite"],
+    "problem": "Component re-renders continuously until React halts execution with 'Maximum update depth exceeded' or 'Too many re-renders'.",
+    "likely_cause": "A state update function (`setCount` or `setData`) is executed directly inside the component body, or inside a `useEffect` whose dependency array contains an object/function reference that changes on every render.",
+    "fix_steps": [
+      "1. Never call `setState` unconditionally in the render body.",
+      "2. Check `useEffect` dependencies: pass an empty array `[]` for mount-only effects.",
+      "3. If updating based on previous state, use the updater function: `setCount(prev => prev + 1)` instead of adding `count` to dependencies.",
+      "4. Memoize object/array dependencies with `useMemo` or functions with `useCallback`."
+    ],
+    "file_hint": "src/components/Counter.jsx",
+    "code_before": "// ❌ Broken: Updating state directly in render or missing dependency guard\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  useEffect(() => {\n    setCount(count + 1); // Triggers re-render, which re-runs effect endlessly\n  }, [count]);\n  return <div>{count}</div>;\n}",
+    "code_after": "// ✅ Fixed: Run on mount or use interval with functional updater\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  useEffect(() => {\n    const timer = setInterval(() => {\n      setCount(prev => prev + 1); // No count dependency needed!\n    }, 1000);\n    return () => clearInterval(timer);\n  }, []); // Run once on mount\n  return <div>{count}</div>;\n}",
+    "extra_tips": "If your effect is just calculating a value from other props/state, don't use state + effect at all! Calculate it during rendering as derived state.",
+    "prevention_checklist": [
+      "Prefer derived state over sync useEffect + setState.",
+      "Use functional state updates (prev => next).",
+      "Avoid objects or array literals inside dependency arrays."
+    ],
+    "related_issues": ["react_hooks_rules", "stale_closure_useeffect", "memory_leak_unmounted"],
+    "source_title": "React.dev — You Might Not Need an Effect",
+    "source_url": "https://react.dev/learn/you-might-not-need-an-effect"
+  },
+  {
+    "id": "hydration_mismatch",
+    "category": "React & SSR",
+    "title": "React Hydration Mismatch (Server vs Client HTML Mismatch)",
+    "trigger_patterns": ["hydration failed", "server html", "did not match what was rendered on the server", "hydration error", "suppresshydrationwarning", "text content does not match"],
+    "problem": "Next.js or React 18/19 throws an error warning that the server-rendered HTML differed from the initial client render tree.",
+    "likely_cause": "The component rendered client-only dynamic values (like `window.innerWidth`, `localStorage`, `Math.random()`, or `new Date()`) directly in JSX during initial render before mounting.",
+    "fix_steps": [
+      "1. Defer reading client-only values into a `useState` initialized to null, and populate inside `useEffect`.",
+      "2. For timestamps, render a static placeholder or suppress warning on that specific tag with `suppressHydrationWarning={true}`.",
+      "3. Verify that your HTML structure is valid (e.g. no `<p>` containing `<div>` or `<table>` without `<tbody>`)."
+    ],
+    "file_hint": "src/components/UserGreeting.tsx",
+    "code_before": "// ❌ Broken: localStorage differs between Node SSR and browser\nfunction Greeting() {\n  const user = localStorage.getItem('user');\n  return <div>Welcome {user || 'Guest'}</div>;\n}",
+    "code_after": "// ✅ Fixed: Wait until client has mounted\nfunction Greeting() {\n  const [user, setUser] = useState<string | null>(null);\n  const [mounted, setMounted] = useState(false);\n  useEffect(() => {\n    setMounted(true);\n    setUser(localStorage.getItem('user'));\n  }, []);\n  if (!mounted) return <div>Welcome Guest</div>;\n  return <div>Welcome {user || 'Guest'}</div>;\n}",
+    "extra_tips": "Invalid HTML tags are the second most common hydration trigger. In HTML specs, `<p>` cannot contain block elements like `<div>` or `<form>`; browsers auto-close the `<p>`, throwing off React's DOM tree matching.",
+    "prevention_checklist": [
+      "Never read window, document, or localStorage in component render body.",
+      "Check browser console for the exact diff tags highlighted by React.",
+      "Validate HTML semantics to prevent auto-closing tags."
+    ],
+    "related_issues": ["invalid_nesting_p_div", "typeerror_null_property"],
+    "source_title": "React.dev — hydrateRoot Reference & Hydration Errors",
+    "source_url": "https://react.dev/reference/react-dom/client/hydrateRoot"
+  },
+  {
+    "id": "zindex_stacking_trap",
+    "category": "CSS Layout & Styling",
+    "title": "CSS Z-Index Stacking Context Trap (Element Renders Behind)",
+    "trigger_patterns": ["z-index", "stacking context", "z-index not working", "dropdown behind", "modal behind", "behind other elements"],
+    "problem": "An element with a high `z-index` (e.g. 9999) still renders behind another element with a lower or no z-index.",
+    "likely_cause": "An ancestor element creates an isolated Stacking Context (via `opacity < 1`, `transform`, `filter`, `perspective`, or `isolation: isolate`), trapping all descendants inside.",
+    "fix_steps": [
+      "1. Mount overlays/modals directly into `document.body` using `ReactDOM.createPortal`.",
+      "2. Inspect parent CSS for `transform`, `filter`, `opacity < 1`, or `will-change` properties.",
+      "3. Ensure the element or its positioning ancestor has `position: relative`, `absolute`, or `fixed` (z-index does not work on static elements)."
+    ],
+    "file_hint": "src/components/Modal.tsx",
+    "code_before": "// ❌ Broken: Trapped in parent card's CSS transform\nreturn (\n  <div className=\"card-with-transform\">\n    <div style={{ position: 'fixed', zIndex: 9999 }}>Trapped Modal</div>\n  </div>\n);",
+    "code_after": "// ✅ Fixed: Use React Portal to escape local context\nimport { createPortal } from 'react-dom';\nexport function Modal({ children }) {\n  if (typeof document === 'undefined') return null;\n  return createPortal(\n    <div className=\"fixed inset-0 z-50 bg-black/50 flex items-center justify-center\">\n      <div className=\"bg-white p-6 rounded shadow-lg\">{children}</div>\n    </div>,\n    document.body\n  );\n}",
+    "extra_tips": "Use the Chrome DevTools 'Layers' or 'Elements > Styles' panel to view which parent creates the stacking context.",
+    "prevention_checklist": [
+      "Always use React Portals for modals, tooltips, and floating menus.",
+      "Remember: z-index is relative to parent stacking context, not global page.",
+      "Avoid unnecessary transforms on container wrappers."
+    ],
+    "related_issues": ["div_not_centered", "sticky_not_sticking"],
+    "source_title": "MDN Web Docs — Understanding CSS Stacking Context",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context"
+  },
+  {
+    "id": "flexbox_overflow_ellipsis",
+    "category": "CSS Layout & Styling",
+    "title": "Flexbox Child Overflowing Container (text-overflow: ellipsis broken)",
+    "trigger_patterns": ["flexbox overflow", "text-overflow ellipsis not working", "flex child expanding", "flex item breaking container", "ellipsis in flexbox"],
+    "problem": "A text element inside a flex container refuses to truncate with ellipsis and instead forces the parent container to stretch horizontally.",
+    "likely_cause": "By default, flex items have `min-width: auto`, which prevents them from shrinking below their intrinsic content size.",
+    "fix_steps": [
+      "1. Add `min-width: 0;` to the flex child element.",
+      "2. Ensure the text element has `white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`.",
+      "3. If nested in multiple flex containers, apply `min-width: 0;` down the hierarchy."
+    ],
+    "file_hint": "src/styles/card.css",
+    "code_before": "/* ❌ Broken: flex item refuses to shrink smaller than text */\n.flex-container {\n  display: flex;\n}\n.flex-child {\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis; /* Will NOT truncate! */\n}",
+    "code_after": "/* ✅ Fixed: Add min-width: 0 to override flex default */\n.flex-container {\n  display: flex;\n}\n.flex-child {\n  min-width: 0; /* Critical fix! */\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}",
+    "extra_tips": "In CSS Grid, the exact equivalent issue occurs with `grid-template-columns`. Use `minmax(0, 1fr)` instead of `1fr` to enable child truncation.",
+    "prevention_checklist": [
+      "Apply min-width: 0 to any flex item intended to truncate.",
+      "Use minmax(0, 1fr) in CSS Grid columns containing text.",
+      "Test responsive layouts with long unbroken strings like URLs."
+    ],
+    "related_issues": ["grid_template_columns_wrap", "div_not_centered"],
+    "source_title": "CSS-Tricks — Flexbox and Truncated Text",
+    "source_url": "https://css-tricks.com/flexbox-truncated-text/"
+  },
+  {
+    "id": "react_missing_key",
+    "category": "React & Hooks",
+    "title": "Warning: Each child in a list should have a unique 'key' prop",
+    "trigger_patterns": ["each child in a list should have a unique key prop", "missing key prop", "unique key", "key prop warning"],
+    "problem": "React browser console displays a warning about missing keys when rendering an array of elements.",
+    "likely_cause": "Elements rendered inside a `.map()` loop lack a unique and stable `key` attribute on their outermost JSX element, causing React reconciliation issues.",
+    "fix_steps": [
+      "1. Add a unique, stable ID from your data (e.g. `key={item.id}`).",
+      "2. Avoid using the array index (`key={index}`) if the list items can be reordered, filtered, or deleted.",
+      "3. Place the `key` prop on the top-most JSX node inside the map callback, even if it is a `<React.Fragment key={item.id}>`."
+    ],
+    "file_hint": "src/components/TodoList.jsx",
+    "code_before": "// ❌ Broken: missing key or using unstable index\n{todos.map(todo => (\n  <div>{todo.text}</div>\n))}",
+    "code_after": "// ✅ Fixed: use stable unique database id\n{todos.map(todo => (\n  <div key={todo.id}>{todo.text}</div>\n))}",
+    "extra_tips": "Using the index as a key causes subtle bugs with input state preservation and animations when items are sorted or removed.",
+    "prevention_checklist": [
+      "Always supply stable string/number ids for list keys.",
+      "Avoid Math.random() as key - it forces full remount on every render.",
+      "Use React.Fragment with key syntax: <React.Fragment key={id}>."
+    ],
+    "related_issues": ["typeerror_map", "infinite_rerender"],
+    "source_title": "React.dev — Rendering Lists",
+    "source_url": "https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key"
+  },
+  {
+    "id": "uncontrolled_controlled",
+    "category": "React & Forms",
+    "title": "Warning: Component changing uncontrolled input to be controlled",
+    "trigger_patterns": ["changing an uncontrolled input to be controlled", "uncontrolled input", "controlled input warning", "uncontrolled to be controlled"],
+    "problem": "React warns in console that an `<input>` switched from uncontrolled to controlled (or vice versa).",
+    "likely_cause": "The input's `value` prop was initialized to `undefined` or `null`, so React treated it as uncontrolled until asynchronous data populated the state.",
+    "fix_steps": [
+      "1. Initialize your form state with an empty string `\"\"` instead of `undefined` or `null`.",
+      "2. Pass a fallback value to the input: `value={form.name ?? ''}`.",
+      "3. Ensure the `onChange` handler updates state synchronously."
+    ],
+    "file_hint": "src/components/ContactForm.jsx",
+    "code_before": "// ❌ Broken: initial state is null or undefined\nconst [email, setEmail] = useState();\nreturn <input value={email} onChange={e => setEmail(e.target.value)} />;",
+    "code_after": "// ✅ Fixed: Initialize with empty string fallback\nconst [email, setEmail] = useState('');\nreturn <input value={email ?? ''} onChange={e => setEmail(e.target.value)} />;",
+    "extra_tips": "For large forms, consider using React Hook Form or Formik which manage input registration and default values automatically.",
+    "prevention_checklist": [
+      "Always provide default string values for form inputs.",
+      "Use nullish coalescing `value={val ?? ''}`.",
+      "Never leave input value as undefined."
+    ],
+    "related_issues": ["form_button_refresh", "missing_label_accessibility"],
+    "source_title": "React.dev — Controlled Components",
+    "source_url": "https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable"
+  },
+  {
+    "id": "form_button_refresh",
+    "category": "HTML & Forms",
+    "title": "Form Button Reloads Page / Submits on Click",
+    "trigger_patterns": ["button reloads the page", "form reloads", "page refreshing on button click", "prevent default form submit", "preventdefault"],
+    "problem": "Clicking a button inside a `<form>` unexpectedly refreshes the browser page and clears the state.",
+    "likely_cause": "The HTML standard defines the default `type` of a `<button>` inside a `<form>` as `type=\"submit\"`. If clicked without `e.preventDefault()`, it submits the form via HTTP GET/POST.",
+    "fix_steps": [
+      "1. If the button is not meant to submit, add `type=\"button\"` explicitly.",
+      "2. If it is the submit button, attach an `onSubmit` handler to the `<form>` and call `e.preventDefault()`.",
+      "3. Never rely on button `onClick` for form submission; handle `onSubmit` on the form element itself."
+    ],
+    "file_hint": "src/components/Form.jsx",
+    "code_before": "// ❌ Broken: Default type is 'submit', reloads page\n<form>\n  <input value={name} />\n  <button onClick={handleCustomAction}>Cancel</button>\n</form>",
+    "code_after": "// ✅ Fixed: Explicitly declare type='button'\n<form onSubmit={e => { e.preventDefault(); handleSubmit(); }}>\n  <input value={name} />\n  <button type=\"button\" onClick={handleCustomAction}>Cancel</button>\n  <button type=\"submit\">Submit</button>\n</form>",
+    "extra_tips": "Adding `type=\"button\"` to secondary buttons also enables keyboard users to trigger them with the Space key while avoiding accidental form submissions.",
+    "prevention_checklist": [
+      "Always specify type='button' or type='submit' on every <button>.",
+      "Attach submission handlers to <form onSubmit={...}> not <button onClick={...}>.",
+      "Call e.preventDefault() in form submit handlers."
+    ],
+    "related_issues": ["uncontrolled_controlled", "missing_label_accessibility"],
+    "source_title": "MDN Web Docs — The HTML <button> Element",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type"
+  },
+  {
+    "id": "invalid_nesting_p_div",
+    "category": "HTML & DOM Structure",
+    "title": "HTML Nesting Violation: `<p>` cannot contain `<div>` or Block Elements",
+    "trigger_patterns": ["cannot appear as a descendant of", "validateDOMNesting", "nesting warning", "p cannot contain div", "div inside p"],
+    "problem": "React logs a `validateDOMNesting(...)` warning in console, and the browser silently splits elements into separate paragraphs.",
+    "likely_cause": "According to the HTML5 specification, `<p>` is an phrasing content container that cannot contain block-level elements like `<div>`, `<section>`, `<ul>`, or `<form>`.",
+    "fix_steps": [
+      "1. Replace the parent `<p>` with a `<div>` or semantic `<section>` element.",
+      "2. Or replace inner `<div>`s with inline elements like `<span>` or `<strong>`.",
+      "3. Use CSS `display: block` or `display: flex` on a `<span>` if layout styling is needed."
+    ],
+    "file_hint": "src/components/Card.tsx",
+    "code_before": "// ❌ Broken: Block div inside paragraph\n<p>\n  Description\n  <div className=\"badge\">New</div>\n</p>",
+    "code_after": "// ✅ Fixed: Use div for wrapper or span for inline child\n<div className=\"text-gray-700\">\n  Description\n  <span className=\"inline-block badge\">New</span>\n</div>",
+    "extra_tips": "When the browser encounters a `<div>` inside a `<p>`, it automatically inserts a closing `</p>` tag before the div, breaking React's hydration tree.",
+    "prevention_checklist": [
+      "Never put <div>, <ul>, <p>, or <table> inside a <p> tag.",
+      "Use eslint-plugin-react and html-validate in CI.",
+      "Use <span> with CSS classes for badges and inline styling."
+    ],
+    "related_issues": ["hydration_mismatch", "missing_label_accessibility"],
+    "source_title": "MDN Web Docs — <p>: The Paragraph Element",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p"
+  },
+  {
+    "id": "api_404_not_found",
+    "category": "API Integration & Network",
+    "title": "HTTP 404 Not Found on API Fetch or SPA Client-Side Route Refresh",
+    "trigger_patterns": ["404 not found", "api 404", "cannot get /api", "failed to load resource: the server responded with a status of 404", "refresh 404"],
+    "problem": "Network requests return 404 Not Found, or refreshing the page on routes like `/dashboard` returns 404 from the web server.",
+    "likely_cause": "Either the API endpoint URL or base URL path has a typo, or the production web server (Nginx/Vercel) lacks fallback routing to `index.html` for single-page applications.",
+    "fix_steps": [
+      "1. Inspect the Network tab in DevTools to check the exact requested URL, method, and base path.",
+      "2. For API calls: verify trailing slash consistency (`/api/users/` vs `/api/users`).",
+      "3. For SPA page refreshes: configure your web server (Nginx, Netlify `_redirects`, or Apache `.htaccess`) to rewrite all non-file routes to `index.html`."
+    ],
+    "file_hint": "nginx.conf / _redirects (SPA Web Server)",
+    "code_before": "// ❌ Nginx without fallback: Direct /dashboard access returns 404\nlocation / {\n  try_files $uri =404;\n}",
+    "code_after": "// ✅ Fixed Nginx configuration for React/Vue SPAs:\nlocation / {\n  try_files $uri $uri/ /index.html;\n}\n\n// For Netlify (_redirects file in public/):\n/*    /index.html   200",
+    "extra_tips": "Always check whether environment variables like `VITE_API_URL` are actually defined in your production build.",
+    "prevention_checklist": [
+      "Ensure SPA web servers rewrite non-file requests to index.html.",
+      "Check exact URL paths and query parameters in DevTools Network tab.",
+      "Define centralized API client with base URL configuration."
+    ],
+    "related_issues": ["cors_policy_blocked", "api_500_internal_error", "json_parse_error"],
+    "source_title": "MDN Web Docs — 404 Not Found",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"
+  },
+  {
+    "id": "api_500_internal_error",
+    "category": "API Integration & Network",
+    "title": "HTTP 500 Internal Server Error & Handling Unhandled Rejections",
+    "trigger_patterns": ["500 internal server error", "status of 500", "server error 500", "500 error", "internal server error"],
+    "problem": "An API call fails with status code 500, and client code breaks trying to parse missing JSON data.",
+    "likely_cause": "The backend server crashed or failed an unhandled exception (e.g. malformed JSON body, database connection error, missing required payload field).",
+    "fix_steps": [
+      "1. Open DevTools Network tab, click the failed request, and view the 'Response' tab for server error details.",
+      "2. Wrap your `fetch` or `axios` call with proper error handling checking `response.ok` before calling `response.json()`.",
+      "3. Display a user-friendly error message rather than crashing the whole screen."
+    ],
+    "file_hint": "src/api/client.js",
+    "code_before": "// ❌ Broken: Assumes response is always successful JSON\nconst res = await fetch('/api/checkout', { method: 'POST', body: JSON.stringify(data) });\nconst json = await res.json(); // Crashes if 500 returns HTML error page",
+    "code_after": "// ✅ Fixed: Check response.ok and catch errors\ntry {\n  const res = await fetch('/api/checkout', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify(data)\n  });\n  if (!res.ok) {\n    const errorText = await res.text();\n    throw new Error(`Server returned ${res.status}: ${errorText}`);\n  }\n  return await res.json();\n} catch (err) {\n  console.error('API Error:', err);\n  toast.error('Service temporarily unavailable. Please try again.');\n}",
+    "extra_tips": "Many production backends return HTML error pages on 500s. Always check `res.ok` before invoking `.json()` to avoid `SyntaxError: Unexpected token '<'`.",
+    "prevention_checklist": [
+      "Always check response.ok in fetch before calling response.json().",
+      "Use try/catch around async network calls.",
+      "Display toast notifications or fallback UI for server errors."
+    ],
+    "related_issues": ["json_parse_error", "unhandled_promise", "api_404_not_found"],
+    "source_title": "MDN Web Docs — 500 Internal Server Error",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+  },
+  {
+    "id": "json_parse_error",
+    "category": "JavaScript & Network",
+    "title": "SyntaxError: Unexpected token '<', '<!DOCTYPE '... is not valid JSON",
+    "trigger_patterns": ["unexpected token '<'", "is not valid json", "syntaxerror: unexpected token", "json.parse unexpected token", "token < in json"],
+    "problem": "Calling `response.json()` fails with a SyntaxError pointing to an opening HTML `<` character.",
+    "likely_cause": "The server returned an HTML webpage (such as an Nginx 404/502 page, a single-page app index.html, or an authentication redirect) instead of the expected JSON payload.",
+    "fix_steps": [
+      "1. Check the response Content-Type header before parsing as JSON: `res.headers.get('content-type')`.",
+      "2. Inspect the failed request in DevTools Network tab to see the actual returned HTML.",
+      "3. Verify that the API route exists and you didn't miss `/api/` in the URL prefix."
+    ],
+    "file_hint": "src/utils/fetcher.ts",
+    "code_before": "// ❌ Broken: blindly assumes JSON\nconst res = await fetch('/api/data');\nconst data = await res.json(); // Throws SyntaxError if server returns HTML",
+    "code_after": "// ✅ Fixed: check headers and status before parsing\nconst res = await fetch('/api/data');\nconst contentType = res.headers.get('content-type');\nif (!res.ok || !contentType?.includes('application/json')) {\n  const rawBody = await res.text();\n  throw new Error(`Expected JSON but got ${contentType}. Body preview: ${rawBody.slice(0, 100)}`);\n}\nconst data = await res.json();",
+    "extra_tips": "This frequently happens when a client-side SPA route rewrite catches your API call because of a mismatched endpoint path.",
+    "prevention_checklist": [
+      "Validate Content-Type header contains application/json.",
+      "Verify API proxy rules match all intended endpoints.",
+      "Log the first 100 characters of raw body on failure for fast diagnosis."
+    ],
+    "related_issues": ["api_404_not_found", "api_500_internal_error"],
+    "source_title": "MDN Web Docs — Response.json()",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/API/Response/json"
+  },
+  {
+    "id": "unhandled_promise",
+    "category": "JavaScript & Browser Console",
+    "title": "UnhandledPromiseRejection: Uncaught (in promise) Error",
+    "trigger_patterns": ["uncaught (in promise)", "unhandledpromiserejection", "unhandled promise rejection", "uncaught exception in promise"],
+    "problem": "Browser console reports `Uncaught (in promise)` and breaks subsequent execution flows.",
+    "likely_cause": "An async function or Promise returned a rejected state (e.g. `fetch` network failure), but no `.catch()` handler or `try/catch` block caught the rejection.",
+    "fix_steps": [
+      "1. Wrap all `await` calls in `try { ... } catch (error) { ... }` blocks.",
+      "2. For chainable promises, always append `.catch(err => ...)` at the end of the chain.",
+      "3. Register a global `window.addEventListener('unhandledrejection', ...)` handler for telemetry and error tracking."
+    ],
+    "file_hint": "src/services/api.js",
+    "code_before": "// ❌ Broken: missing catch on async call\nasync function loadData() {\n  const res = await fetch('https://broken-url.test');\n  const data = await res.json();\n}\nloadData(); // Uncaught (in promise) TypeError: Failed to fetch",
+    "code_after": "// ✅ Fixed: wrapped in try/catch\nasync function loadData() {\n  try {\n    const res = await fetch('https://broken-url.test');\n    if (!res.ok) throw new Error(`HTTP error ${res.status}`);\n    return await res.json();\n  } catch (err) {\n    console.error('Safely caught fetch error:', err);\n    return null;\n  }\n}",
+    "extra_tips": "Remember that `fetch()` only rejects on actual network failure (DNS, offline, CORS); it does NOT reject on HTTP 404 or 500 statuses.",
+    "prevention_checklist": [
+      "Wrap async/await in try/catch.",
+      "Add unhandledrejection event listener in app root.",
+      "Check res.ok since fetch does not reject on 4xx/5xx."
+    ],
+    "related_issues": ["api_500_internal_error", "fetch_race_condition"],
+    "source_title": "MDN Web Docs — Promise.prototype.catch()",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/catch"
+  },
+  {
+    "id": "react_hooks_rules",
+    "category": "React & Hooks",
+    "title": "React Hooks Violation: Rendered fewer (or more) hooks than expected",
+    "trigger_patterns": ["rendered fewer hooks than expected", "invalid hook call", "rules of hooks", "hooks can only be called inside the body", "rendered more hooks"],
+    "problem": "React crashes with 'Rendered fewer hooks than expected' or 'Invalid hook call'.",
+    "likely_cause": "A React Hook (`useState`, `useEffect`, `useMemo`) was placed inside a conditional `if` statement, a loop, or after an early `return` statement.",
+    "fix_steps": [
+      "1. Move all hook calls to the very top level of your component function, before any conditional logic or early returns.",
+      "2. Never call hooks inside loops, conditionals, or nested functions.",
+      "3. Ensure the component name starts with a capital letter (PascalCase) or is a custom hook starting with `use`."
+    ],
+    "file_hint": "src/components/Profile.tsx",
+    "code_before": "// ❌ Broken: Hook called after early return and inside condition\nfunction Profile({ user }) {\n  if (!user) return <p>Loading...</p>;\n  const [posts, setPosts] = useState([]); // Crash! Rendered fewer hooks on loading\n  return <div>{posts.length}</div>;\n}",
+    "code_after": "// ✅ Fixed: Call all hooks at top level unconditionally\nfunction Profile({ user }) {\n  const [posts, setPosts] = useState([]); // Always called in exact same order\n  \n  if (!user) return <p>Loading...</p>;\n  return <div>{posts.length}</div>;\n}",
+    "extra_tips": "React relies on the exact execution order of hook calls to maintain state index between renders. Any alteration in call order breaks internal fiber state pointers.",
+    "prevention_checklist": [
+      "Use eslint-plugin-react-hooks in your linter.",
+      "Call all hooks at the very top of the component.",
+      "Never put hooks inside if statements, loops, or event callbacks."
+    ],
+    "related_issues": ["infinite_rerender", "stale_closure_useeffect"],
+    "source_title": "React.dev — Rules of Hooks",
+    "source_url": "https://react.dev/reference/rules/rules-of-hooks"
+  },
+  {
+    "id": "stale_closure_useeffect",
+    "category": "React & Hooks",
+    "title": "Stale Closure in useEffect or Event Listener: State Not Updating",
+    "trigger_patterns": ["stale closure", "state not updating in useeffect", "setinterval old state", "state value is stuck", "stale state"],
+    "problem": "An asynchronous timer (`setInterval`) or event listener accesses an old, outdated value of state that never changes.",
+    "likely_cause": "The callback closed over the state variable from its initial render, and the dependency array was left empty `[]` without refreshing the closure.",
+    "fix_steps": [
+      "1. Use functional state updates (`setCount(c => c + 1)`) so you don't need the state variable in the closure.",
+      "2. If reading current state inside a listener, store the latest value in a `useRef`.",
+      "3. Add the missing state variable to the `useEffect` dependency array and clean up the interval on unmount."
+    ],
+    "file_hint": "src/components/Timer.tsx",
+    "code_before": "// ❌ Broken: setInterval captures 'count = 0' forever\nconst [count, setCount] = useState(0);\nuseEffect(() => {\n  const id = setInterval(() => {\n    setCount(count + 1); // count is perpetually 0!\n  }, 1000);\n  return () => clearInterval(id);\n}, []);",
+    "code_after": "// ✅ Fixed: Use updater function to access current state\nconst [count, setCount] = useState(0);\nuseEffect(() => {\n  const id = setInterval(() => {\n    setCount(prev => prev + 1); // Always receives latest value\n  }, 1000);\n  return () => clearInterval(id);\n}, []);",
+    "extra_tips": "The functional update pattern `setState(prev => ...)` is both faster and cleaner because it eliminates the need to restart the timer every second.",
+    "prevention_checklist": [
+      "Use prev => next in setState whenever updating based on previous value.",
+      "Use useRef for mutable values needed inside event listeners.",
+      "Always return cleanup functions from useEffect intervals/listeners."
+    ],
+    "related_issues": ["infinite_rerender", "memory_leak_unmounted"],
+    "source_title": "React.dev — Keeping Effects Independent",
+    "source_url": "https://react.dev/learn/synchronizing-with-effects"
+  },
+  {
+    "id": "fetch_race_condition",
+    "category": "API Integration & React",
+    "title": "Race Condition in Fetch Requests: Out-of-Order API Responses",
+    "trigger_patterns": ["race condition", "fast typing search wrong result", "abortcontroller", "out of order response", "cancel previous request"],
+    "problem": "When typing quickly in a search bar or switching tabs rapidly, an earlier slow API request resolves AFTER a later fast request, displaying outdated results.",
+    "likely_cause": "Network latency is non-deterministic; without cancellation, the slowest request overwrites the most recent request's state.",
+    "fix_steps": [
+      "1. Create an `AbortController` inside `useEffect` and pass `signal: controller.signal` to `fetch`.",
+      "2. In the `useEffect` cleanup return function, call `controller.abort()`.",
+      "3. Catch and ignore `AbortError` so it doesn't log unnecessary errors to console.",
+      "4. Alternatively, use modern server-state libraries like TanStack Query / SWR."
+    ],
+    "file_hint": "src/components/SearchInput.tsx",
+    "code_before": "// ❌ Broken: Slow queries overwrite fast queries\nuseEffect(() => {\n  fetch(`/api/search?q=${query}`).then(res => res.json()).then(setResults);\n}, [query]);",
+    "code_after": "// ✅ Fixed: Abort previous pending request on cleanup\nuseEffect(() => {\n  const controller = new AbortController();\n  fetch(`/api/search?q=${query}`, { signal: controller.signal })\n    .then(res => res.json())\n    .then(setResults)\n    .catch(err => {\n      if (err.name !== 'AbortError') console.error(err);\n    });\n  return () => controller.abort(); // Cancel if query changes\n}, [query]);",
+    "extra_tips": "Debouncing the input by 300ms using a small timer further reduces server load and avoids unnecessary network requests.",
+    "prevention_checklist": [
+      "Use AbortController in useEffect fetch calls.",
+      "Debounce auto-complete and search inputs.",
+      "Consider TanStack Query for automatic query cancellation."
+    ],
+    "related_issues": ["api_500_internal_error", "unhandled_promise"],
+    "source_title": "MDN Web Docs — AbortController",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController"
+  },
+  {
+    "id": "sticky_not_sticking",
+    "category": "CSS Layout & Styling",
+    "title": "CSS position: sticky Not Working (Element Scrolls Away)",
+    "trigger_patterns": ["position: sticky not working", "sticky not sticking", "sticky header scrolling", "position sticky issue"],
+    "problem": "An element with `position: sticky` scrolls off the page instead of anchoring at its defined threshold.",
+    "likely_cause": "Either no threshold property (`top`, `bottom`, `left`, `right`) was defined, or an ancestor element has `overflow: hidden`, `overflow: auto`, or `overflow: scroll` which clips the scrolling context.",
+    "fix_steps": [
+      "1. Ensure at least one positioning threshold is declared (e.g. `top: 0;`).",
+      "2. Inspect all ancestor parent elements in DevTools for `overflow: hidden`, `clip`, or `auto` and remove them from the scrolling container.",
+      "3. Verify that the parent container has enough height to allow scrolling (sticky elements only stick within their direct parent)."
+    ],
+    "file_hint": "src/styles/navbar.css",
+    "code_before": "/* ❌ Broken: missing threshold and parent has overflow: hidden */\n.parent {\n  overflow: hidden;\n}\n.header {\n  position: sticky; /* Will NOT stick! */\n}",
+    "code_after": "/* ✅ Fixed: Add threshold and remove parent overflow clipping */\n.parent {\n  overflow: visible; /* or remove overflow */\n}\n.header {\n  position: sticky;\n  top: 0; /* Required threshold */\n  z-index: 50;\n}",
+    "extra_tips": "A quick JavaScript DevTools snippet to find rogue overflow parents: `let el = $0; while (el) { const s = getComputedStyle(el); if (s.overflow !== 'visible') console.log(el); el = el.parentElement; }`.",
+    "prevention_checklist": [
+      "Always set top, bottom, left or right on sticky elements.",
+      "Ensure parent containers do not have overflow: hidden.",
+      "Remember sticky elements cannot stick outside their immediate parent's bounding box."
+    ],
+    "related_issues": ["zindex_stacking_trap", "div_not_centered"],
+    "source_title": "MDN Web Docs — position: sticky",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/position#sticky"
+  },
+  {
+    "id": "vh_mobile_addressbar",
+    "category": "CSS Layout & Styling",
+    "title": "Mobile 100vh Layout Jump / Content Cut Off by Browser Address Bar",
+    "trigger_patterns": ["100vh mobile address bar", "100vh issue on mobile", "content cut off bottom mobile", "100vh jump", "dvh vs vh"],
+    "problem": "On mobile devices (iOS Safari & Chrome Android), a full-height container (`height: 100vh`) is partly covered by the dynamic browser address bar, causing awkward scrolling.",
+    "likely_cause": "The traditional CSS `vh` unit calculates against the maximum viewport height assuming the browser address bar is hidden.",
+    "fix_steps": [
+      "1. Use the modern Dynamic Viewport Height unit: `min-height: 100dvh;`.",
+      "2. Provide a fallback for older browsers: `min-height: 100vh; min-height: 100dvh;`.",
+      "3. For fixed overlays, ensure `bottom: 0; top: 0;` or use `env(safe-area-inset-bottom)`."
+    ],
+    "file_hint": "src/styles/app.css",
+    "code_before": "/* ❌ Broken on mobile browsers: 100vh ignores address bar */\n.hero-screen {\n  height: 100vh;\n}",
+    "code_after": "/* ✅ Fixed: Use dynamic viewport unit (dvh) */\n.hero-screen {\n  min-height: 100vh;  /* Fallback for legacy browsers */\n  min-height: 100dvh; /* Modern standard: adapts dynamically */\n}",
+    "extra_tips": "Use `padding-bottom: env(safe-area-inset-bottom)` when positioning elements near the bottom on iPhone devices with home indicator bars.",
+    "prevention_checklist": [
+      "Use 100dvh instead of 100vh for full-height screens.",
+      "Include safe-area-inset padding for iPhone home indicator bars.",
+      "Test responsive designs on real mobile touch devices."
+    ],
+    "related_issues": ["div_not_centered", "sticky_not_sticking"],
+    "source_title": "web.dev — The Large, Small, and Dynamic Viewport Units",
+    "source_url": "https://web.dev/blog/viewport-units/"
+  },
+  {
+    "id": "typeerror_null_property",
+    "category": "JavaScript & TypeScript",
+    "title": "TypeError: Cannot read properties of null (reading 'property')",
+    "trigger_patterns": ["cannot read properties of null", "reading 'user'", "null is not an object", "cannot read property of null"],
+    "problem": "Runtime crash when trying to access a property or method on a variable whose value evaluates to `null`.",
+    "likely_cause": "An object state (like `user`, `config`, or a DOM ref) is initialized to `null` or fetched asynchronously, and properties are accessed before resolution.",
+    "fix_steps": [
+      "1. Use optional chaining: `user?.profile?.name`.",
+      "2. Use nullish coalescing to provide safe fallbacks: `user?.name ?? 'Guest'`.",
+      "3. Place an early return loading guard at the top of the component."
+    ],
+    "file_hint": "src/components/UserProfile.tsx",
+    "code_before": "// ❌ Broken: user starts as null\nconst [user, setUser] = useState(null);\nreturn <div>{user.name}</div>; // TypeError: Cannot read properties of null",
+    "code_after": "// ✅ Fixed: Optional chaining and loading state\nconst [user, setUser] = useState(null);\nif (!user) return <div className=\"skeleton\">Loading profile...</div>;\nreturn <div>{user.name}</div>;",
+    "extra_tips": "TypeScript strict null checks (`strictNullChecks: true`) will warn you at compile-time whenever an expression could potentially be null.",
+    "prevention_checklist": [
+      "Enable strictNullChecks in tsconfig.json.",
+      "Use optional chaining (?.) on nested objects.",
+      "Provide skeleton loaders while user data loads."
+    ],
+    "related_issues": ["typeerror_map", "hydration_mismatch"],
     "source_title": "MDN Web Docs — Optional Chaining (?.)",
     "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining"
   },
   {
-    "id": "zindex",
-    "category": "CSS / Layout",
-    "trigger_patterns": ["z-index", "stacking context", "behind", "modal", "overlay"],
-    "title": "CSS Z-Index Stacking Context Trap",
-    "summary": "Even with z-index: 9999, the element renders behind a sibling. An ancestor element has a CSS property (like opacity < 1, transform, or filter) that creates a local Stacking Context, trapping child z-index values.",
-    "file_hint": "Modal.tsx",
-    "code_before": "// ❌ Broken: Modal trapped in parent's local stacking context\nreturn <div className=\"modal z-[9999]\">{content}</div>;",
-    "code_after": "// ✅ Fixed: Use React Portal to escape local context and render at <body>\nimport { createPortal } from 'react-dom';\nexport function Modal({ children }) {\n  if (typeof document === 'undefined') return null;\n  return createPortal(\n    <div className=\"fixed inset-0 z-50 bg-black/50 backdrop-blur\">{children}</div>,\n    document.body\n  );\n}",
-    "explanation": "In CSS, a child cannot escape its parent's stacking context. Using ReactDOM.createPortal mounts the overlay directly into <body>, allowing high z-index values to work correctly across the entire viewport.",
-    "source_title": "MDN Web Docs — Stacking Context",
-    "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context"
+    "id": "assignment_const",
+    "category": "JavaScript Fundamentals",
+    "title": "TypeError: Assignment to constant variable",
+    "trigger_patterns": ["assignment to constant variable", "reassign const", "cannot reassign const", "typeerror assignment to constant"],
+    "problem": "JavaScript runtime throws TypeError when attempting to reassign a variable declared with `const`.",
+    "likely_cause": "A variable was declared with `const` and later reassigned with the `=` operator, or mutated inside a loop counter.",
+    "fix_steps": [
+      "1. Change `const` to `let` if the primitive variable needs to be reassigned.",
+      "2. If working with objects or arrays, you CAN mutate their properties (`arr.push()` or `obj.key = val`) without reassigning the variable itself.",
+      "3. In React state, never reassign local variables; use the setState setter function."
+    ],
+    "file_hint": "src/utils/calc.js",
+    "code_before": "// ❌ Broken: Reassigning const\nconst total = 100;\nif (hasDiscount) {\n  total = total * 0.9; // TypeError: Assignment to constant variable\n}",
+    "code_after": "// ✅ Fixed: Use let for reassignable values\nlet total = 100;\nif (hasDiscount) {\n  total = total * 0.9;\n}",
+    "extra_tips": "In modern functional JavaScript, consider using a ternary expression: `const total = hasDiscount ? base * 0.9 : base;` to preserve immutability.",
+    "prevention_checklist": [
+      "Use let when variable will be reassigned.",
+      "Use const with ternary expressions instead of if-reassignment.",
+      "Never mutate React state variables directly."
+    ],
+    "related_issues": ["nan_calculation", "typeerror_null_property"],
+    "source_title": "MDN Web Docs — const Declaration",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const"
   },
   {
-    "id": "re_render",
-    "category": "React Hooks",
-    "trigger_patterns": ["too many re-renders", "limits the number of renders to prevent an infinite loop", "infinite loop"],
-    "title": "Too Many Re-renders: Infinite Render Loop",
-    "summary": "A state update function (setState) was called synchronously inside the component body during render. React immediately attempts to re-render, creating an unbounded loop that crashes the app.",
-    "file_hint": "UserProfile.tsx",
-    "code_before": "// ❌ Broken: setState called directly in render body\nfunction UserProfile({ user }) {\n  const [active, setActive] = useState(false);\n  if (user.isOnline) setActive(true);\n  return <div>{user.name}</div>;\n}",
-    "code_after": "// ✅ Fixed: Calculate derived state or wrap in useEffect\nfunction UserProfile({ user }) {\n  // Method A: Derived state (simplest & best)\n  const isActive = Boolean(user.isOnline);\n  \n  // Method B: If side-effect is strictly needed:\n  const [active, setActive] = useState(false);\n  useEffect(() => {\n    setActive(Boolean(user.isOnline));\n  }, [user.isOnline]);\n  \n  return <div>{user.name}</div>;\n}",
-    "explanation": "Never update state unconditionally inside the component body. Either compute the value on the fly as derived state, or wrap the update inside a useEffect hook with clear primitive dependencies.",
-    "source_title": "React.dev — Lifecycle of Reactive Effects",
-    "source_url": "https://react.dev/learn/lifecycle-of-reactive-effects"
+    "id": "nan_calculation",
+    "category": "JavaScript Fundamentals",
+    "title": "NaN (Not-a-Number) in Calculations or UI Displays",
+    "trigger_patterns": ["nan in calculation", "displays nan", "returns nan", "is nan", "not a number"],
+    "problem": "Mathematical calculations result in `NaN` or display `NaN` on the screen.",
+    "likely_cause": "Performing arithmetic operations (`-`, `*`, `/`) with `undefined`, `null`, or an unparsed string value (e.g. from an HTML `<input>` value).",
+    "fix_steps": [
+      "1. Parse numeric inputs explicitly: `Number(inputVal)` or `parseFloat(inputVal)`.",
+      "2. Guard against missing or undefined values: `Number(price || 0)`.",
+      "3. Use `Number.isNaN(val)` to check and sanitize before rendering."
+    ],
+    "file_hint": "src/components/PriceCalculator.tsx",
+    "code_before": "// ❌ Broken: e.target.value is a string, and unselected fields yield NaN\nconst total = price * quantity;\nreturn <span>${total}</span>;",
+    "code_after": "// ✅ Fixed: Sanitize inputs and parse safely\nconst safePrice = Number(price) || 0;\nconst safeQty = Number(quantity) || 0;\nconst total = safePrice * safeQty;\nreturn <span>${total.toFixed(2)}</span>;",
+    "extra_tips": "Remember that `<input type=\"number\" />` still produces a string in `e.target.value`. In React, use `e.target.valueAsNumber` for instant numeric conversion.",
+    "prevention_checklist": [
+      "Use e.target.valueAsNumber for HTML number inputs.",
+      "Provide default 0 for mathematical operands.",
+      "Format final numeric results with .toFixed(2) or Intl.NumberFormat."
+    ],
+    "related_issues": ["assignment_const", "typeerror_map"],
+    "source_title": "MDN Web Docs — Number.isNaN()",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN"
+  },
+  {
+    "id": "memory_leak_unmounted",
+    "category": "React & Memory Management",
+    "title": "Warning: Can't perform a React state update on an unmounted component",
+    "trigger_patterns": ["can't perform a react state update on an unmounted component", "memory leak react", "unmounted component", "state update on unmounted"],
+    "problem": "React warns that `setState` was called after a component was already unmounted from the DOM.",
+    "likely_cause": "An async API fetch, `setTimeout`, or WebSocket message resolves after the user navigated away from the screen.",
+    "fix_steps": [
+      "1. Cancel the async operation on unmount using `AbortController`.",
+      "2. Clear any active `setTimeout` or `setInterval` in the `useEffect` cleanup function.",
+      "3. Alternatively, track mount status with an `isMounted` flag inside the effect."
+    ],
+    "file_hint": "src/components/AsyncDataView.tsx",
+    "code_before": "// ❌ Broken: setState runs even if user navigates away\nuseEffect(() => {\n  fetchData().then(data => setData(data));\n}, []);",
+    "code_after": "// ✅ Fixed: Flag or AbortController cleanup\nuseEffect(() => {\n  let isMounted = true;\n  fetchData().then(data => {\n    if (isMounted) setData(data);\n  });\n  return () => { isMounted = false; };\n}, []);",
+    "extra_tips": "While React 18 removed the hard console warning, lingering promises still waste memory and can trigger subtle background errors.",
+    "prevention_checklist": [
+      "Always return cleanup functions from useEffect.",
+      "Cancel fetch requests using AbortController.",
+      "Clear timers with clearTimeout/clearInterval."
+    ],
+    "related_issues": ["fetch_race_condition", "stale_closure_useeffect"],
+    "source_title": "React.dev — Synchronizing with Effects Cleanup",
+    "source_url": "https://react.dev/learn/synchronizing-with-effects#how-to-handle-effect-cleanup"
+  },
+  {
+    "id": "margin_collapse",
+    "category": "CSS Layout & Styling",
+    "title": "CSS Margin Collapse: Unexpected Vertical Gaps or Ignored Margins",
+    "trigger_patterns": ["margin collapse", "css margin collapsing", "vertical margin ignored", "unexpected space between elements"],
+    "problem": "Top or bottom margins between adjacent elements combine into a single margin, or a child's top margin spills outside its parent container.",
+    "likely_cause": "CSS margin collapsing occurs when block elements in normal flow have adjoining vertical margins without padding, borders, or inline content separating them.",
+    "fix_steps": [
+      "1. Modern fix: use Flexbox or CSS Grid with the `gap` property instead of vertical margins.",
+      "2. If keeping block layout, add `padding-top: 1px;` or `border-top: 1px solid transparent;` to the parent.",
+      "3. Or set `overflow: hidden;` or `display: flow-root;` on the parent to create a new Block Formatting Context (BFC)."
+    ],
+    "file_hint": "src/styles/card.css",
+    "code_before": "/* ❌ Broken: Child top margin pushes parent down */\n.parent {\n  background: #eee;\n}\n.child {\n  margin-top: 40px;\n}",
+    "code_after": "/* ✅ Fixed: display: flow-root stops margin collapse cleanly */\n.parent {\n  display: flow-root; /* Creates new BFC */\n  background: #eee;\n}\n.child {\n  margin-top: 40px;\n}",
+    "extra_tips": "Flex and Grid containers NEVER experience margin collapsing. Whenever possible, replace `margin-bottom` with parent `gap`.",
+    "prevention_checklist": [
+      "Use flex/grid gap instead of vertical margins on children.",
+      "Use display: flow-root on parent if traditional block flow is needed.",
+      "Remember margins never collapse horizontally."
+    ],
+    "related_issues": ["div_not_centered", "flexbox_overflow_ellipsis"],
+    "source_title": "MDN Web Docs — Mastering Margin Collapsing",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_box_model/Mastering_margin_collapsing"
+  },
+  {
+    "id": "grid_template_columns_wrap",
+    "category": "CSS Layout & Styling",
+    "title": "CSS Grid Items Overflowing Container / Not Responsive",
+    "trigger_patterns": ["grid items overflowing", "grid not wrapping", "css grid overflow", "grid auto-fit vs auto-fill"],
+    "problem": "CSS Grid columns do not adjust to small screens, causing horizontal scrolling and container breaking.",
+    "likely_cause": "Grid columns were declared with fixed pixel widths (`grid-template-columns: 300px 300px`) or `1fr` columns with rigid child content.",
+    "fix_steps": [
+      "1. Use responsive auto-fitting columns: `grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));`.",
+      "2. Use `minmax(0, 1fr)` instead of raw `1fr` if children contain long strings.",
+      "3. Combine with `gap: 1.5rem;` for automatic wrapping without media queries."
+    ],
+    "file_hint": "src/styles/grid.css",
+    "code_before": "/* ❌ Broken: Fixed column counts break on mobile */\n.grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr 1fr; /* Will overflow on mobile */\n}",
+    "code_after": "/* ✅ Fixed: Responsive auto-fit grid without media queries */\n.grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));\n  gap: 1.5rem;\n}",
+    "extra_tips": "The expression `minmax(min(100%, 280px), 1fr))` prevents overflow even on tiny screens under 280px wide.",
+    "prevention_checklist": [
+      "Use repeat(auto-fit, minmax(...)) for responsive card grids.",
+      "Avoid hardcoded fixed column numbers when cards must wrap.",
+      "Add minmax(0, 1fr) to prevent text overflow."
+    ],
+    "related_issues": ["flexbox_overflow_ellipsis", "div_not_centered"],
+    "source_title": "MDN Web Docs — Realizing Common Layouts Using CSS Grid",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout/Realizing_common_layouts_using_CSS_grid"
+  },
+  {
+    "id": "missing_label_accessibility",
+    "category": "HTML & Accessibility (a11y)",
+    "title": "Accessibility Violation: Form Input Missing Associated Label or ARIA",
+    "trigger_patterns": ["input missing label", "accessibility label", "form control does not have an associated label", "aria label missing", "lighthouse accessibility input"],
+    "problem": "Lighthouse or screen readers report that an input field lacks an associated `<label>` or accessible name.",
+    "likely_cause": "Using a standalone `<input>` without linking it to a `<label htmlFor=\"id\">` or omitting `aria-label`.",
+    "fix_steps": [
+      "1. Wrap the `<input>` inside a `<label>` element, or link with `<label htmlFor=\"userId\">` and `<input id=\"userId\">`.",
+      "2. If a visible label is not desired visually, use `aria-label=\"Search\"` or a visually-hidden CSS utility (`sr-only`).",
+      "3. Never rely solely on the `placeholder` attribute as a replacement for a label."
+    ],
+    "file_hint": "src/components/SearchBox.tsx",
+    "code_before": "/* ❌ Broken: Placeholder is not an accessible label */\n<input type=\"text\" placeholder=\"Search...\" />",
+    "code_after": "/* ✅ Fixed: Linked label or aria-label */\n<label htmlFor=\"search-input\" className=\"sr-only\">Search items</label>\n<input id=\"search-input\" type=\"text\" placeholder=\"Search...\" aria-label=\"Search items\" />",
+    "extra_tips": "Placeholders vanish when the user types, making them unusable for cognitive accessibility. An accessible label guarantees screen reader support.",
+    "prevention_checklist": [
+      "Always provide label htmlFor='id' matching input id.",
+      "Use aria-label on icon buttons and search bars.",
+      "Do not use placeholder as the sole label."
+    ],
+    "related_issues": ["form_button_refresh", "invalid_nesting_p_div"],
+    "source_title": "MDN Web Docs — How to Structure a Web Form",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Learn/Forms/How_to_structure_a_web_form"
+  },
+  {
+    "id": "image_cumulative_layout_shift",
+    "category": "HTML & Core Web Vitals",
+    "title": "Cumulative Layout Shift (CLS): Image Jumps and Shifts Content on Load",
+    "trigger_patterns": ["cumulative layout shift", "cls image", "image jumping", "layout shift", "image shifting content"],
+    "problem": "As images load, existing text and layout jump downward, producing poor Lighthouse Core Web Vitals (CLS) scores.",
+    "likely_cause": "The `<img>` tag lacks explicit `width` and `height` HTML attributes or a CSS `aspect-ratio`, forcing the browser to allocate 0 height until image dimensions are downloaded.",
+    "fix_steps": [
+      "1. Add explicit `width` and `height` attributes to the `<img>` tag: `<img src=\"...\" width=\"800\" height=\"600\" />`.",
+      "2. Add CSS responsive rule: `img { max-width: 100%; height: auto; }` so the aspect ratio is preserved.",
+      "3. Alternatively, define CSS `aspect-ratio: 16 / 9;` on the image wrapper."
+    ],
+    "file_hint": "src/components/Banner.tsx",
+    "code_before": "/* ❌ Broken: Browser allocates 0px height initially, causing jump */\n<img src=\"/hero.jpg\" alt=\"Hero banner\" />",
+    "code_after": "/* ✅ Fixed: Explicit dimensions let browser reserve space */\n<img \n  src=\"/hero.jpg\" \n  alt=\"Hero banner\" \n  width=\"1200\" \n  height=\"600\" \n  loading=\"lazy\"\n  style={{ maxWidth: '100%', height: 'auto', aspectRatio: '2 / 1' }}\n/>",
+    "extra_tips": "Modern browsers calculate the aspect ratio from the HTML `width` and `height` attributes before downloading the image file, reserving the exact space in layout.",
+    "prevention_checklist": [
+      "Always set width and height attributes on <img> tags.",
+      "Use CSS max-width: 100% and height: auto.",
+      "Use aspect-ratio for dynamic responsive containers."
+    ],
+    "related_issues": ["flexbox_overflow_ellipsis", "div_not_centered"],
+    "source_title": "web.dev — Optimize Cumulative Layout Shift (CLS)",
+    "source_url": "https://web.dev/articles/optimize-cls"
+  },
+  {
+    "id": "csp_violation",
+    "category": "Browser Security & Console",
+    "title": "Content Security Policy (CSP) Violation: Blocked Inline Script or Font",
+    "trigger_patterns": ["content security policy", "refused to execute inline script", "csp violation", "refused to load the stylesheet", "unsafe-inline"],
+    "problem": "Browser console shows error: `Refused to execute inline script because it violates the following Content Security Policy directive...`.",
+    "likely_cause": "The website's CSP header restricts script or stylesheet execution from unauthorized inline blocks, third-party CDNs, or eval statements.",
+    "fix_steps": [
+      "1. Move inline `<script>` code into external bundled JavaScript files.",
+      "2. If using Vite or Next.js, configure a cryptographic `nonce` or hash in your CSP header.",
+      "3. Whitelist trusted CDN origins in your `Content-Security-Policy` header (e.g. `font-src 'self' https://fonts.gstatic.com`)."
+    ],
+    "file_hint": "public/index.html or server headers",
+    "code_before": "<!-- ❌ Blocked by strict CSP -->\n<script>\n  window.analytics = { id: 123 }; // Inline script blocked!\n</script>",
+    "code_after": "<!-- ✅ Fixed: Load via external bundled asset or supply nonce -->\n<script type=\"module\" src=\"/src/analytics.js\"></script>\n<!-- Or in server header: Content-Security-Policy: script-src 'self' 'nonce-rAnd0m'; -->",
+    "extra_tips": "Avoid adding `'unsafe-inline'` to production CSP headers, as it negates protection against Cross-Site Scripting (XSS) attacks.",
+    "prevention_checklist": [
+      "Never use inline <script> or inline event handlers like onclick='...'.",
+      "Whitelist necessary CDN domains explicitly in CSP.",
+      "Generate dynamic nonces for server-rendered inline scripts."
+    ],
+    "related_issues": ["mixed_content_http_https", "cors_policy_blocked"],
+    "source_title": "MDN Web Docs — Content Security Policy (CSP)",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"
+  },
+  {
+    "id": "mixed_content_http_https",
+    "category": "Browser Security & Console",
+    "title": "Mixed Content: Insecure HTTP Request on Secure HTTPS Page",
+    "trigger_patterns": ["mixed content", "was loaded over https, but requested an insecure", "insecure content", "blocked loading mixed active content"],
+    "problem": "Browser refuses to load scripts, images, or API endpoints on an HTTPS website, logging a Mixed Content error.",
+    "likely_cause": "The main website is served over HTTPS, but attempts to fetch assets or API data via unencrypted `http://` protocols.",
+    "fix_steps": [
+      "1. Upgrade the resource URL to `https://`.",
+      "2. Use protocol-relative URLs (`//api.example.com`) or relative paths (`/api/data`).",
+      "3. Add the header `Content-Security-Policy: upgrade-insecure-requests;` to auto-upgrade HTTP requests."
+    ],
+    "file_hint": "src/config/api.ts",
+    "code_before": "// ❌ Broken: http request on https domain blocked\nconst API_URL = 'http://api.mysite.com/v1';",
+    "code_after": "// ✅ Fixed: Use https protocol or domain proxy\nconst API_URL = 'https://api.mysite.com/v1';",
+    "extra_tips": "Modern browsers actively block 'mixed active content' (scripts, fetch calls, iframes) to protect users from Man-In-The-Middle packet tampering.",
+    "prevention_checklist": [
+      "Always use https:// for all external API endpoints and CDN URLs.",
+      "Configure upgrade-insecure-requests in CSP header.",
+      "Check environment variables for hardcoded http:// prefixes."
+    ],
+    "related_issues": ["csp_violation", "cors_policy_blocked"],
+    "source_title": "MDN Web Docs — What is Mixed Content?",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"
+  },
+  {
+    "id": "localstorage_quota_exceeded",
+    "category": "Browser Storage & Web APIs",
+    "title": "DOMException: QuotaExceededError in localStorage.setItem()",
+    "trigger_patterns": ["quotaexceedederror", "quota exceeded", "failed to execute 'setitem' on 'storage'", "localstorage quota", "storage full"],
+    "problem": "Calling `localStorage.setItem()` crashes with `DOMException: QuotaExceededError: Setting the value of 'x' exceeded the quota`.",
+    "likely_cause": "The browser's localStorage quota (typically 5MB per origin) has been exceeded, often caused by caching large base64 images or massive JSON responses.",
+    "fix_steps": [
+      "1. Switch to `IndexedDB` (using libraries like `idb` or `localforage`) for datasets larger than a few megabytes.",
+      "2. Wrap `localStorage.setItem` in a `try/catch` block to handle full storage gracefully.",
+      "3. Implement an LRU eviction or expiration policy to purge stale cache entries."
+    ],
+    "file_hint": "src/utils/storage.ts",
+    "code_before": "// ❌ Broken: Crashes app when 5MB limit is reached\nlocalStorage.setItem('large_cache', JSON.stringify(heavyData));",
+    "code_after": "// ✅ Fixed: Wrap in try/catch or migrate to IndexedDB\ntry {\n  localStorage.setItem('cache_key', JSON.stringify(data));\n} catch (e) {\n  if (e.name === 'QuotaExceededError') {\n    console.warn('LocalStorage full, clearing old keys');\n    localStorage.removeItem('old_cache_key');\n  }\n}",
+    "extra_tips": "Never store binary files, images, or offline database backups in localStorage. Use IndexedDB which supports hundreds of megabytes.",
+    "prevention_checklist": [
+      "Never store large blobs or base64 images in localStorage.",
+      "Wrap localStorage.setItem in try/catch.",
+      "Use IndexedDB (localforage) for rich client-side caching."
+    ],
+    "related_issues": ["typeerror_null_property", "hydration_mismatch"],
+    "source_title": "MDN Web Docs — Storage.setItem() & QuotaExceededError",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/API/Storage/setItem"
+  },
+  {
+    "id": "cors_credentials_wildcard",
+    "category": "API Integration & Network",
+    "title": "CORS Error: 'Access-Control-Allow-Origin' Cannot Be Wildcard '*' with Credentials",
+    "trigger_patterns": ["wildcard '*' when credentials mode is 'include'", "credentials flag is true", "cannot be wildcard", "access-control-allow-credentials"],
+    "problem": "Fetch with `{ credentials: 'include' }` or cookies fails with a CORS error stating that wildcard `*` origin is not permitted.",
+    "likely_cause": "When a frontend sends HTTP cookies or credentials, the CORS specification strictly forbids the backend from returning `Access-Control-Allow-Origin: *`.",
+    "fix_steps": [
+      "1. Configure backend server to echo the exact requesting origin (e.g. `http://localhost:3000` or `https://app.com`).",
+      "2. Set the backend header `Access-Control-Allow-Credentials: true`.",
+      "3. If credentials (cookies) are not actually required, remove `credentials: 'include'` from the client fetch request."
+    ],
+    "file_hint": "server.js / backend CORS config",
+    "code_before": "// ❌ Backend sends wildcard with credentials:\n// Access-Control-Allow-Origin: *\n// Access-Control-Allow-Credentials: true",
+    "code_after": "// ✅ Fixed Backend CORS headers:\n// Access-Control-Allow-Origin: https://app.example.com\n// Access-Control-Allow-Credentials: true\n\n// Client fetch:\nfetch('https://api.example.com/me', { credentials: 'include' });",
+    "extra_tips": "Most backend CORS middlewares (like FastAPI CORSMiddleware or Express cors) take an `allow_origins=['https://app.com']` list to handle this automatically.",
+    "prevention_checklist": [
+      "Specify exact domain in backend allow_origins when using credentials.",
+      "Enable Access-Control-Allow-Credentials: true on backend.",
+      "Only send credentials: 'include' when cookies or sessions are needed."
+    ],
+    "related_issues": ["cors_policy_blocked", "api_500_internal_error"],
+    "source_title": "MDN Web Docs — Access-Control-Allow-Credentials",
+    "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials"
   }
 ]

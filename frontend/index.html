@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FrontFix — Frontend Issue Resolution Assistant</title>
+  <title>FrontFix AI — Frontend Support Engineer (Team B)</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- Safety Warning Notice Bar -->
+  <div class="safety-banner">
+    <span>🛡️ <strong>Safety Advisory:</strong> Never paste real production passwords, private keys, or customer data. Privacy Shield auto-redacts tokens.</span>
+  </div>
 
   <!-- Minimal Header -->
   <header class="header">
     <div class="header-container">
       <a href="#" class="brand">
         <div class="brand-icon">⚡</div>
-        <span class="brand-name">FrontFix</span>
-        <span class="brand-badge">Team B</span>
+        <span class="brand-name">FrontFix AI</span>
+        <span class="brand-badge">Team B • Frontend</span>
       </a>
 
       <div class="header-actions">
@@ -22,6 +27,9 @@
           <span class="status-dot" id="status-dot"></span>
           <span id="status-text">Connecting...</span>
         </div>
+        <button class="icon-btn" onclick="triggerLogUpload()" title="Upload a frontend log file or console dump">
+          📁 Upload Log
+        </button>
         <button class="icon-btn" onclick="clearConversation()" title="Clear chat history">
           Clear
         </button>
@@ -37,25 +45,51 @@
     
     <!-- Empty State Hero -->
     <div class="hero" id="hero-view">
-      <h1>What frontend issue can I resolve?</h1>
-      <p>Paste a browser console error, React stack trace, or ask how to troubleshoot HTML, CSS, JavaScript, and API integration bugs.</p>
+      <h1>Frontend Technical Issue Resolution</h1>
+      <p>Paste a JavaScript or React exception, CSS layout breakdown, API/CORS network failure, or browser console error for step-by-step resolution.</p>
 
-      <div class="quick-prompts-label">Try a common scenario</div>
+      <!-- Category: React & Hooks -->
+      <div class="preset-category-title">⚛️ React & Hooks Errors</div>
       <div class="quick-prompts">
-        <button class="prompt-chip" onclick="handlePreset('hydration')">
-          React Hydration Mismatch
+        <button class="prompt-chip" onclick="handlePreset('typeerror_map')">
+          <span class="chip-tag">TypeError</span> Cannot read properties of undefined (reading 'map')
         </button>
-        <button class="prompt-chip" onclick="handlePreset('cors')">
-          CORS Network Block
+        <button class="prompt-chip" onclick="handlePreset('infinite_rerender')">
+          <span class="chip-tag">Hooks</span> useEffect runs in an infinite loop
         </button>
-        <button class="prompt-chip" onclick="handlePreset('typeerror')">
-          TypeError: undefined (.map)
+        <button class="prompt-chip" onclick="handlePreset('hydration_mismatch')">
+          <span class="chip-tag">SSR</span> React Hydration Mismatch
         </button>
-        <button class="prompt-chip" onclick="handlePreset('zindex')">
-          CSS Z-Index Stacking Trap
+        <button class="prompt-chip" onclick="handlePreset('react_missing_key')">
+          <span class="chip-tag">Keys</span> Warning: Each child in a list should have a unique 'key'
         </button>
-        <button class="prompt-chip" onclick="handlePreset('re_render')">
-          Too Many Re-renders
+      </div>
+
+      <!-- Category: CSS & Layout -->
+      <div class="preset-category-title">🎨 CSS & Layout Breakdown</div>
+      <div class="quick-prompts">
+        <button class="prompt-chip" onclick="handlePreset('div_not_centered')">
+          <span class="chip-tag">Centering</span> My div is not centered
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('zindex_stacking_trap')">
+          <span class="chip-tag">Z-Index</span> Stacking context trap (renders behind)
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('flexbox_overflow_ellipsis')">
+          <span class="chip-tag">Flexbox</span> Overflow / text-overflow: ellipsis broken
+        </button>
+      </div>
+
+      <!-- Category: API & Browser Network -->
+      <div class="preset-category-title">🌐 API Integration & Network Errors</div>
+      <div class="quick-prompts">
+        <button class="prompt-chip" onclick="handlePreset('cors_policy_blocked')">
+          <span class="chip-tag">CORS</span> CORS policy blocked my request
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('api_404_not_found')">
+          <span class="chip-tag">HTTP 404</span> Not Found on API route or SPA refresh
+        </button>
+        <button class="prompt-chip" onclick="handlePreset('form_button_refresh')">
+          <span class="chip-tag">HTML</span> Form button reloads page on click
         </button>
       </div>
     </div>
@@ -65,6 +99,12 @@
 
   </main>
 
+  <!-- Hidden File Input for Log Upload -->
+  <input type="file" id="log-file-input" style="display: none;" accept=".log,.txt,.json" onchange="handleFileSelected(event)">
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Feedback received!</div>
+
   <!-- Minimal Floating Input Dock -->
   <div class="input-dock">
     <div class="input-container">
@@ -72,14 +112,19 @@
         id="prompt-input" 
         class="input-textarea" 
         rows="1" 
-        placeholder="Paste a frontend error or describe the bug... (Enter to send, Shift+Enter for new line)"
+        placeholder="Paste a frontend error message, stack trace, or describe your problem... (Enter to send, Shift+Enter for newline)"
       ></textarea>
       
       <div class="input-toolbar">
-        <label class="privacy-toggle" title="Automatically masks JWT tokens, API keys and credentials before sending">
-          <input type="checkbox" id="privacy-checkbox" checked>
-          <span>Privacy Shield Active</span>
-        </label>
+        <div class="toolbar-left">
+          <label class="privacy-toggle" title="Automatically masks JWT tokens, API keys and credentials before sending">
+            <input type="checkbox" id="privacy-checkbox" checked>
+            <span>Privacy Shield Active</span>
+          </label>
+          <button class="upload-log-btn" onclick="triggerLogUpload()" title="Upload and summarize a .log or .txt file">
+            📎 Upload Log File
+          </button>
+        </div>
         
         <button id="send-btn" class="send-btn" onclick="submitMessage()">
           <span>Diagnose</span>
