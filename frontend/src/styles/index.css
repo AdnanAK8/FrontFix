@@ -601,6 +601,48 @@ html, body {
   gap: 14px;
 }
 
+.conversational-reply {
+  max-width: 620px;
+  align-self: flex-start;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f2fbf5, #f3f7ff);
+  border-color: #d8e9dd;
+}
+
+.conversation-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #42a77e, #4267a8);
+  font-size: 17px;
+}
+
+.conversation-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.conversation-title {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--text-main);
+}
+
+.conversation-copy p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
 @keyframes messageEnter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
