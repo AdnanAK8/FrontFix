@@ -164,9 +164,15 @@ npm run dev --prefix backend
 ```
 The server will start on **`http://127.0.0.1:8000`**.
 
-### Step 4: Open the Web UI
-- Open `frontend/index.html` in your browser, or visit `http://127.0.0.1:8000/ui` when the backend is running.
-- On Windows, you can double-click **`run.bat`** to start both the backend and frontend with a single click.
+### Step 4: Run the Frontend UI
+```bash
+# Start frontend in Vite development mode
+cd frontend
+npm install
+npm run dev
+```
+- The interactive frontend will start on **`http://localhost:5173`** (or embedded at **`http://127.0.0.1:8000/ui`**).
+- On Windows, you can simply double-click **`run.bat`** to start both backend and frontend automatically.
 
 ---
 

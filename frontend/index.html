@@ -12,7 +12,21 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- ponytail: Fallback shown only if opened as raw file:// without dev server -->
+    <div id="root">
+      <div style="font-family:system-ui,-apple-system,sans-serif;padding:32px;max-width:560px;margin:80px auto;background:#1e293b;color:#f8fafc;border-radius:12px;border:1px solid #334155;box-shadow:0 10px 25px rgba(0,0,0,0.4);text-align:center;">
+        <h2 style="margin-top:0;color:#38bdf8;">⚡ FrontendFix AI</h2>
+        <p style="color:#94a3b8;line-height:1.6;">FrontendFix is a modern React application that requires the Vite development server.</p>
+        <div style="background:#0f172a;border-radius:8px;padding:12px 16px;margin:16px 0;font-family:Consolas,monospace;font-size:14px;color:#a5f3fc;text-align:left;">
+          <div>&gt; cd frontend</div>
+          <div>&gt; npm install</div>
+          <div>&gt; npm run dev</div>
+        </div>
+        <p style="color:#64748b;font-size:13px;line-height:1.5;margin-bottom:0;">
+          Or simply double-click <strong>run.bat</strong> in the project root to start both backend &amp; frontend automatically.
+        </p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

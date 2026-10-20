@@ -72,12 +72,15 @@ export function createApp(customOptions = {}) {
   app.use('/api/feedback', createFeedbackRoutes(feedbackController));
 
   // 6. Optional static file mount for frontend UI (single-process deployment)
+  // ponytail: serve built dist folder if present, falling back to frontend root
   const frontendDir = path.resolve(__dirname, '../../../frontend');
   const localFrontendDir = path.resolve(__dirname, '../../frontend');
   const resolvedFrontend = fs.existsSync(frontendDir) ? frontendDir : (fs.existsSync(localFrontendDir) ? localFrontendDir : null);
 
   if (resolvedFrontend) {
-    app.use('/ui', express.static(resolvedFrontend));
+    const distPath = path.join(resolvedFrontend, 'dist');
+    const staticDir = fs.existsSync(distPath) ? distPath : resolvedFrontend;
+    app.use('/ui', express.static(staticDir));
   }
 
   // 7. Global centralized error handler
