@@ -566,18 +566,59 @@ function appendBotResponse(data) {
   }
 
   // Code Diff block HTML
+  // Evidence & Observations block
+  let evidenceHtml = '';
+  if (data.evidence_summary) {
+    const ev = data.evidence_summary;
+    const fileLocStr = ev.file_location ? `${escapeHtml(ev.file_location.file)}${ev.file_location.line ? `:${ev.file_location.line}` : ''}` : null;
+    evidenceHtml = `
+      <div class="stream-line">
+        <div class="evidence-box">
+          <div class="evidence-badge-row">
+            <span class="evidence-tag">Source: ${escapeHtml(ev.input_source || 'User input')}</span>
+            <span class="evidence-tag">Framework: ${escapeHtml(ev.detected_framework || 'Generic JS')}</span>
+            ${fileLocStr ? `<span class="evidence-tag">Origin: ${fileLocStr}</span>` : ''}
+          </div>
+          ${Array.isArray(ev.confirmed_observations) && ev.confirmed_observations.length > 0 ? `
+            <ul class="evidence-obs-list">
+              ${ev.confirmed_observations.map(o => `<li>${escapeHtml(o)}</li>`).join('')}
+            </ul>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Follow-up question callout
+  let followupHtml = '';
+  if (data.follow_up_question) {
+    followupHtml = `
+      <div class="stream-line">
+        <div class="followup-callout">
+          <span class="followup-icon">💡</span>
+          <div>
+            <strong>Missing Detail for Exact Fix:</strong>
+            <p>${escapeHtml(data.follow_up_question)}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Code Diff block HTML
   let diffHtml = '';
   if (data.code_before && data.code_after) {
     diffHtml = `
       <div class="stream-line">
         <div class="diff-container">
           <div class="diff-header">
-            <span>${escapeHtml(data.file_hint || 'File Patch')}</span>
-            <button class="copy-btn" onclick="copyCode('${copyId}')">Copy Fix</button>
+            <span>${escapeHtml(data.file_hint || 'Code Fix')}</span>
+            <button class="copy-btn" onclick="copyCodeFix('${copyId}')">Copy Fix</button>
           </div>
+          ${data.code_context_note ? `<div class="code-context-note">${escapeHtml(data.code_context_note)}</div>` : ''}
           <div class="diff-body" id="${copyId}">
             <div class="diff-line-del">${escapeHtml(data.code_before)}</div>
-            <div class="diff-line-add">${escapeHtml(data.code_after)}</div>
+            <div class="diff-line-add" id="${copyId}-add">${escapeHtml(data.code_after)}</div>
           </div>
         </div>
       </div>
@@ -592,6 +633,9 @@ function appendBotResponse(data) {
         <span class="provenance-tag ai-gen">✨ Verified Frontend Diagnostic</span>
       </div>
     </div>
+
+    <!-- Line 1.5: Evidence Observations -->
+    ${evidenceHtml}
 
     <!-- Line 2: Issue Title -->
     <div class="stream-line">
@@ -613,6 +657,9 @@ function appendBotResponse(data) {
         <div class="section-content">${escapeHtml(data.likely_cause || '')}</div>
       </div>
     </div>
+
+    <!-- Line 4.5: Follow-up Callout -->
+    ${followupHtml}
 
     <!-- Line 5 & 6: Fix Steps & Code Diff -->
     ${fixStepsHtml}
@@ -678,12 +725,20 @@ function escapeHtml(value) {
 }
 
 // Copy Code Patch
-function copyCode(id) {
-  const el = document.getElementById(id);
-  const text = el.innerText;
+function copyCodeFix(id) {
+  const addEl = document.getElementById(id + '-add');
+  const fullEl = document.getElementById(id);
+  const text = addEl ? addEl.innerText : (fullEl ? fullEl.innerText : '');
   navigator.clipboard.writeText(text).then(() => {
     showToast('Code fix copied to clipboard!');
   }).catch(() => {
+    showToast('Code copied!');
+  });
+}
+
+function copyCode(id) {
+  copyCodeFix(id);
+}).catch(() => {
     showToast('Code copied!');
   });
 }

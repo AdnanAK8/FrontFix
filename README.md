@@ -7,7 +7,7 @@
 [![AI Grounding](https://img.shields.io/badge/AI_Model-Gemini_1.5_Flash-4285f4?style=for-the-badge&logo=google)](https://github.com/AdnanAK8/FrontFix)
 [![Backend](https://img.shields.io/badge/Backend-Node.js_&_Express-339933?style=for-the-badge&logo=nodedotjs)](https://github.com/AdnanAK8/FrontFix)
 [![Extension](https://img.shields.io/badge/Extension-Manifest_V3-f59e0b?style=for-the-badge&logo=googlechrome)](https://github.com/AdnanAK8/FrontFix)
-[![Tests](https://img.shields.io/badge/Tests-93_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
+[![Tests](https://img.shields.io/badge/Tests-105_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
 
 ---
 
@@ -40,6 +40,7 @@ FrontFix/
 │   │   │   └── feedback.controller.js
 │   │   ├── services/
 │   │   │   ├── diagnostic-engine.js   # Orchestration & low-confidence fallback
+│   │   │   ├── evidence.service.js    # Evidence extraction, stack parsing, framework detection & URL whitelist
 │   │   │   ├── knowledge-retriever.js # TF-IDF vector index & cosine similarity
 │   │   │   ├── llm.service.js         # Google Gemini & OpenAI grounding client
 │   │   │   ├── history.service.js     # Multi-turn memory & context enrichment
@@ -56,10 +57,11 @@ FrontFix/
 │   ├── data/
 │   │   └── knowledge.json             # 34 canonical frontend issues catalog
 │   ├── tests/
-│   │   ├── api-and-security.test.js   # 25 core integration test requirements
-│   │   ├── engine.test.js             # Engine baseline unit tests
-│   │   ├── initial-checklist.test.js  # 25 checklist scenario tests
-│   │   └── twenty-plus-suite.test.js  # 36 real developer questions
+│   │   ├── api-and-security.test.js      # 25 core integration test requirements
+│   │   ├── engine.test.js                # Engine baseline unit tests
+│   │   ├── evidence-and-accuracy.test.js # 12 evidence-based diagnostics & accuracy tests
+│   │   ├── initial-checklist.test.js     # 25 checklist scenario tests
+│   │   └── twenty-plus-suite.test.js     # 36 real developer questions
 │   ├── package.json
 │   └── package-lock.json
 │
@@ -189,7 +191,7 @@ FrontFix includes a Manifest V3 browser extension for live in-browser debugging:
 
 ## 🧪 6. Running Automated Tests
 
-Run the full 93-test automated test suite:
+Run the full 105-test automated test suite:
 
 ```bash
 npm test --prefix backend
@@ -197,11 +199,12 @@ npm test --prefix backend
 
 ### Test Coverage Highlights:
 - **25 Required Integration Tests (`api-and-security.test.js`)**: Server startup, health endpoint, valid/empty/invalid requests, schema validation, LLM fallback, oversized log uploads (413), binary upload guards, rate limiting, and CORS.
+- **12 Evidence & Accuracy Tests (`evidence-and-accuracy.test.js`)**: Evidence extraction, avoiding unsupported assumptions (generic vs React `.map()`), distinguishing `null` vs `undefined`, empty array vs loading states, strict stack frame validation without invented lines, trusted source domain whitelisting, and literal unescaped JSX diff formatting.
 - **36 Real-World Frontend Tests (`twenty-plus-suite.test.js`)**: Real developer questions covering `TypeError: .map()`, CORS blocks, div centering, infinite `useEffect` loops, SSR hydration mismatch, z-index stacking, CSS flexbox overflow, missing keys, and localStorage quota errors.
 - **25 Canonical Checklist Tests (`initial-checklist.test.js`)**: Comprehensive checklist testing with exact match verification.
 - **7 Baseline Engine Tests (`engine.test.js`)**: Knowledge base count (>= 30), privacy scrubbing, and log file analyzer.
 
-**Result: 93 passing tests in ~1.2 seconds (0 failures).**
+**Result: 105 passing tests in ~600ms (0 failures).**
 
 ---
 

@@ -25,6 +25,7 @@
     if (event.error) {
       sendError({
         type: 'javascript_error',
+        category: 'Uncaught JavaScript Error',
         message: event.error.message || String(event.error),
         stack: event.error.stack || '',
         filename: event.filename || '',
@@ -34,6 +35,7 @@
     } else if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK' || event.target.tagName === 'IMG')) {
       sendError({
         type: 'resource_load_error',
+        category: 'Failed Resource Load',
         message: `Failed to load ${event.target.tagName.toLowerCase()} resource`,
         resourceTag: event.target.tagName,
         resourceUrl: event.target.src || event.target.href || ''
@@ -62,6 +64,7 @@
 
     sendError({
       type: 'unhandled_promise_rejection',
+      category: 'Unhandled Promise Rejection',
       message: message,
       stack: stack
     });

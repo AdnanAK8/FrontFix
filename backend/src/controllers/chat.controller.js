@@ -7,9 +7,22 @@ export class ChatController {
 
   diagnose = async (req, res, next) => {
     try {
-      const { query, enable_privacy = true, conversation_history = null } = req.body;
+      const {
+        query,
+        enable_privacy = true,
+        conversation_history = null,
+        stack = '',
+        framework = null,
+        source = 'user_pasted'
+      } = req.body;
 
-      const diagnosis = await this.engine.diagnose(query, enable_privacy, conversation_history);
+      const context = {
+        stack,
+        detectedFramework: framework,
+        source
+      };
+
+      const diagnosis = await this.engine.diagnose(query, enable_privacy, conversation_history, context);
       const formatted = formatDiagnosticResponse(diagnosis);
 
       return res.json({

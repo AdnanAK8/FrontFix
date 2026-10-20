@@ -50,18 +50,28 @@
           <span class="context-label">Page:</span>
           <span id="current-page-url" class="context-value" title="Active URL">Loading URL...</span>
         </div>
+        <div class="context-item" style="margin-top: 4px;">
+          <span class="context-label">Framework:</span>
+          <span id="detected-framework-badge" class="context-framework">Detecting...</span>
+        </div>
         <div id="selection-banner" class="selection-banner hidden">
-          <span>📝 Text selected on page</span>
+          <span>📝 User text selected on page</span>
         </div>
       </div>
 
       <div class="section-title">
-        <span>Detected Issues</span>
+        <span>Captured Diagnostic Signals</span>
         <span id="error-count-badge" class="badge">0</span>
       </div>
 
       <div id="detected-errors-list" class="errors-list">
         <div class="empty-state">No runtime errors detected on this tab yet.</div>
+      </div>
+
+      <!-- Evidence Preview -->
+      <div id="evidence-preview-box" class="evidence-preview-box">
+        <span class="preview-title">Diagnostics Scope:</span>
+        <p id="evidence-preview-text">Inspects active uncaught exceptions and console failures on this tab only. Form values, inputs, passwords, and server internals are not accessible or transmitted.</p>
       </div>
 
       <div class="privacy-box">
@@ -73,7 +83,7 @@
       </div>
 
       <div class="action-row">
-        <button id="analyze-page-btn" class="btn btn-primary">🔍 Analyze Current Page</button>
+        <button id="analyze-page-btn" class="btn btn-primary">🔍 Analyze Captured Evidence</button>
         <button id="clear-errors-btn" class="btn btn-outline">Clear</button>
       </div>
     </section>
@@ -81,7 +91,11 @@
     <!-- Tab 2: Manual Query -->
     <section id="tab-manual-query" class="tab-content">
       <label for="manual-error-input" class="input-label">Paste Error, Log, or Describe Problem:</label>
-      <textarea id="manual-error-input" placeholder="e.g. TypeError: Cannot read properties of undefined (reading 'map') or CORS policy blocked..."></textarea>
+      <textarea id="manual-error-input" placeholder="e.g. TypeError: Cannot read properties of undefined (reading 'map') at UserList.jsx:15..."></textarea>
+
+      <div class="privacy-box" style="margin-top: 8px;">
+        <p class="privacy-note">💡 Diagnosis will be based strictly on your pasted snippet without assuming an unmentioned framework.</p>
+      </div>
 
       <div class="action-row">
         <button id="diagnose-manual-btn" class="btn btn-primary">⚡ Diagnose Error</button>
@@ -91,7 +105,7 @@
     <!-- Loader -->
     <div id="loading-indicator" class="loader-box hidden">
       <div class="spinner"></div>
-      <p id="loading-text">Analyzing with FrontFix AI...</p>
+      <p id="loading-text">Analyzing evidence with FrontFix AI...</p>
     </div>
 
     <!-- Diagnosis Result Container -->
@@ -103,13 +117,35 @@
 
       <h2 id="diag-title" class="diag-title">Diagnosis Title</h2>
 
+      <!-- Evidence & Observations Panel -->
+      <div id="diag-evidence-panel" class="evidence-panel">
+        <div class="evidence-header">
+          <span>📋 Confirmed Evidence & Origin</span>
+        </div>
+        <div class="evidence-body">
+          <div class="evidence-row">
+            <span class="evidence-key">Source:</span>
+            <span id="diag-input-source" class="evidence-val">User-provided input</span>
+          </div>
+          <div class="evidence-row">
+            <span class="evidence-key">Framework:</span>
+            <span id="diag-framework" class="evidence-val">Standard JavaScript</span>
+          </div>
+          <div id="diag-file-row" class="evidence-row hidden">
+            <span class="evidence-key">Location:</span>
+            <span id="diag-file-loc" class="evidence-val">None specified</span>
+          </div>
+          <ul id="diag-observations-list" class="observations-list"></ul>
+        </div>
+      </div>
+
       <div class="diag-section">
         <h3>1. Problem</h3>
         <p id="diag-problem"></p>
       </div>
 
       <div class="diag-section">
-        <h3>2. Likely Cause</h3>
+        <h3>2. Likely Causes (Ranked)</h3>
         <p id="diag-likely-cause"></p>
       </div>
 
@@ -118,11 +154,21 @@
         <ol id="diag-fix-steps" class="steps-list"></ol>
       </div>
 
+      <!-- Focused Follow-Up Question Callout -->
+      <div id="diag-followup-box" class="followup-box hidden">
+        <span class="followup-icon">💡</span>
+        <div class="followup-content">
+          <span class="followup-title">Missing Detail for Exact Fix:</span>
+          <p id="diag-followup-text"></p>
+        </div>
+      </div>
+
       <div id="diag-code-container" class="code-container hidden">
         <div class="code-header">
-          <span>Code Correction</span>
+          <span id="diag-code-title">Code Example</span>
           <button id="copy-code-btn" class="btn-xs">Copy Fix</button>
         </div>
+        <p id="diag-code-note" class="code-note hidden"></p>
         <pre><code id="diag-code-after"></code></pre>
       </div>
 

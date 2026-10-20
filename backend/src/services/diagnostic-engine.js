@@ -2,6 +2,7 @@ import KnowledgeRetriever from './knowledge-retriever.js';
 import SanitizerService from './sanitizer.service.js';
 import HistoryService from './history.service.js';
 import LLMService from './llm.service.js';
+import EvidenceService from './evidence.service.js';
 
 export class DiagnosticEngine {
   static MIN_MATCH_SCORE = 12.0;
@@ -37,8 +38,10 @@ export class DiagnosticEngine {
     return false;
   }
 
-  generateContextAwareFollowup(query) {
+  generateContextAwareFollowup(query, evidence = null) {
     const q = query.toLowerCase();
+    const framework = evidence?.detectedFramework || 'Unknown';
+
     if (q.includes('css') || q.includes('style') || q.includes('align') || q.includes('layout')) {
       return {
         category: 'CSS & Layout Inquiry',
@@ -58,7 +61,7 @@ export class DiagnosticEngine {
           url: 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Introduction'
         }
       };
-    } else if (q.includes('react') || q.includes('hook') || q.includes('render') || q.includes('state')) {
+    } else if (q.includes('react') || q.includes('hook') || q.includes('render') || q.includes('state') || framework === 'React') {
       return {
         category: 'React Diagnostic Inquiry',
         title: 'Need More React Specifics to Diagnose',
@@ -117,9 +120,13 @@ export class DiagnosticEngine {
 
   /**
    * Main diagnostic method.
-   * Accepts user query and returns structured 4-part diagnosis.
+   * Uses evidence-based deduction without unsupported assumptions.
+   * @param {string} userInput
+   * @param {boolean} enablePrivacy
+   * @param {Array} conversationHistory
+   * @param {object} context - Additional metadata (stack, errorMessage, detectedFramework, source)
    */
-  async diagnose(userInput, enablePrivacy = true, conversationHistory = null) {
+  async diagnose(userInput, enablePrivacy = true, conversationHistory = null, context = {}) {
     let cleanText = (userInput || '').trim();
     let redactionsCount = 0;
 
@@ -134,9 +141,12 @@ export class DiagnosticEngine {
       HistoryService.processHistory(conversationHistory, enablePrivacy);
     redactionsCount += historyRedactions;
 
+    // Extract confirmed evidence without making assumptions
+    const evidence = EvidenceService.analyze(cleanText, context);
+
     // 1. Check for insufficient/vague input
     if (this.isInsufficientQuery(cleanText)) {
-      const followupData = this.generateContextAwareFollowup(cleanText);
+      const followupData = this.generateContextAwareFollowup(cleanText, evidence);
       return {
         matched: false,
         generated_by: 'knowledge_base',
@@ -150,15 +160,23 @@ export class DiagnosticEngine {
         fix_steps: followupData.fix_steps,
         extra_tips: followupData.extra_tips,
         follow_up_prompt: followupData.follow_up_prompt,
+        follow_up_question: followupData.follow_up_prompt,
         confirmation_prompt: 'Did this guidance help clarify what to share?',
         source: followupData.source,
+        sources: [followupData.source],
         prevention_checklist: [
           'Always check DevTools Console (F12) for uncaught exceptions.',
           'Check DevTools Network tab for failed 4xx or 5xx API calls.',
           'Review component props and initial state definitions.'
         ],
         related_issues: ['typeerror_map', 'cors_policy_blocked', 'div_not_centered'],
-        redactions_count: redactionsCount
+        redactions_count: redactionsCount,
+        evidence_summary: {
+          input_source: evidence.inputSource,
+          file_location: evidence.fileLocation,
+          detected_framework: evidence.detectedFramework,
+          confirmed_observations: evidence.observations
+        }
       };
     }
 
@@ -189,20 +207,53 @@ export class DiagnosticEngine {
       let codeAfter = topItem.code_after || '';
       let extraTips = topItem.extra_tips || '';
       let title = topItem.title;
+      let category = topItem.category;
       let generatedBy = 'knowledge_base';
       let modelLabel = '📚 Verified Knowledge Base';
+      let codeContextNote = 'General illustrative example — adapt variable and component names to your codebase.';
+
+      // Evidence-based adaptation for TypeError: Cannot read properties of undefined (reading 'map')
+      if (topItem.id === 'typeerror_map') {
+        const hasReactEvidence = evidence.detectedFramework === 'React' ||
+          evidence.detectedFramework === 'Next.js' ||
+          Boolean(evidence.fileLocation?.file?.match(/\.(jsx|tsx)$/i));
+
+        if (!hasReactEvidence) {
+          category = 'JavaScript Runtime';
+          problem = "Attempted to call the '.map()' method on a variable that evaluated to 'undefined' at runtime.";
+          likelyCause =
+            "1. (Most common) Asynchronous state or prop populated asynchronously (e.g. from an API call, async function, or promise) that defaults to undefined on initial evaluation.\n" +
+            "2. Unexpected data structure: The API, function, or prop returned an object (e.g. '{ data: [...] }'), null, or an error payload instead of a direct array.\n" +
+            "3. The variable was conditionally assigned or an optional property chain resolved to undefined.";
+
+          fixSteps = [
+            "1. Verify the variable exists and is a valid array before calling .map(), using `Array.isArray(variable)` or optional chaining `variable?.map(...)`.",
+            "2. If populated asynchronously (e.g. from an API call), track distinct `loading`, `error`, and `data` states. Initializing with `useState([])` prevents undefined crashes, but the true fix depends on the data source; an empty array does not keep loading active.",
+            "3. If the array is empty (`items.length === 0`), render an empty state message (e.g. 'No items found') rather than getting trapped in a loading indicator.",
+            "4. Log or inspect the value and type of the variable immediately before calling .map()."
+          ];
+
+          codeBefore = "// ❌ Broken: Calling .map() on an undefined or uninitialized variable\nconst data = undefined;\ndata.map(item => item.name);";
+          codeAfter = "// ✅ Fixed (Standard JavaScript): Guard with Array.isArray\nif (Array.isArray(items)) {\n  items.map(item => item.name);\n}\n\n// ✅ In a React component: Separate loading, error, and empty result states\nconst [items, setItems] = useState([]);\nconst [loading, setLoading] = useState(true);\nconst [error, setError] = useState(null);\n\nif (loading) return <p>Loading items...</p>;\nif (error) return <p>Error: {error}</p>;\nif (items.length === 0) return <p>No items found.</p>;\n\nreturn (\n  <ul>\n    {items.map(item => (\n      <li key={item.id}>{item.name}</li>\n    ))}\n  </ul>\n);";
+          codeContextNote = "Framework note: No specific framework was identified from the supplied error. The code above shows standard defensive JavaScript as well as the common React component pattern.";
+        } else {
+          // React evidence confirmed
+          codeContextNote = `Evidence detected React in ${evidence.fileLocation ? evidence.fileLocation.file : 'input'}. The fix separates loading, error, and empty result states.`;
+        }
+      }
 
       if (isMultiturnFollowup) {
         title = `${title} (Follow-up Context)`;
       }
 
-      // Step 4: Pass to LLM if available
+      // Step 4: Pass to LLM if available, grounding with evidence
       if (this.llmService.isAvailable()) {
         try {
           const { output: llmOutput, provider } = await this.llmService.generateGroundedResponse(
             cleanText,
             topItem,
-            sanitizedHistory
+            sanitizedHistory,
+            evidence
           );
           if (llmOutput) {
             problem = llmOutput.problem || problem;
@@ -219,6 +270,14 @@ export class DiagnosticEngine {
         }
       }
 
+      // Determine file hint strictly from evidence
+      const fileHint = evidence.fileLocation
+        ? `${evidence.fileLocation.file}${evidence.fileLocation.line ? `:${evidence.fileLocation.line}` : ''}`
+        : null;
+
+      // Determine focused follow-up question
+      const followUpQuestion = evidence.focusedFollowUp || null;
+
       return {
         matched: true,
         generated_by: generatedBy,
@@ -226,15 +285,18 @@ export class DiagnosticEngine {
         is_followup_needed: false,
         is_uncertain: isUncertain,
         confidence_score: parseFloat(score.toFixed(1)),
-        category: topItem.category,
+        category,
         title,
         problem,
         likely_cause: likelyCause,
         fix_steps: fixSteps,
-        file_hint: topItem.file_hint || 'src/App.tsx',
+        file_hint: fileHint,
         code_before: codeBefore,
         code_after: codeAfter,
+        corrected_code: codeAfter,
+        code_context_note: codeContextNote,
         extra_tips: extraTips,
+        follow_up_question: followUpQuestion,
         prevention_checklist: topItem.prevention_checklist || [
           'Implement comprehensive unit tests.',
           'Enable strict linting rules.'
@@ -244,12 +306,25 @@ export class DiagnosticEngine {
           title: topItem.source_title,
           url: topItem.source_url
         },
+        sources: [
+          {
+            title: topItem.source_title,
+            url: topItem.source_url
+          }
+        ],
         confirmation_prompt: 'Did this resolve your issue? Let us know with thumbs up or down below.',
-        redactions_count: redactionsCount
+        redactions_count: redactionsCount,
+        evidence_summary: {
+          input_source: evidence.inputSource,
+          is_browser_captured: evidence.isBrowserCaptured,
+          file_location: evidence.fileLocation,
+          detected_framework: evidence.detectedFramework,
+          confirmed_observations: evidence.observations
+        }
       };
     }
 
-    // 4. Low-confidence fallback
+    // 4. Low-confidence fallback (Never invent files or facts)
     const firstLine = cleanText.split('\n')[0] || 'Frontend Exception';
     return {
       matched: false,
@@ -261,17 +336,20 @@ export class DiagnosticEngine {
       category: 'Frontend Runtime & Troubleshooting',
       title: 'Uncatalogued Frontend Issue (General Diagnostics)',
       problem: `Encountered an uncatalogued issue or custom runtime state: '${firstLine.slice(0, 90)}...'.`,
-      likely_cause: 'I am not completely certain about this specific error scenario, but based on your description, this typically stems from an unhandled async promise rejection, undefined state access, or missing try/catch error boundary.',
+      likely_cause: 'I am not completely certain about this specific error scenario, but based on your description, this error does not match our catalogued frontend issues. It typically stems from an unhandled async promise rejection, undefined state access, or missing try/catch error boundary.',
       fix_steps: [
-        '1. Isolate the failing component by wrapping it in a React Error Boundary or wrapping the async call in `try { ... } catch (err) { console.error(err); }`.',
-        '2. Open the Browser Developer Tools (F12) -> Network tab to verify all API responses return valid 200 JSON.',
-        '3. Check the Console tab for the full call stack trace to identify the exact file and line number.',
+        '1. Inspect the browser console (F12) for the full stack trace to identify the file and line number.',
+        '2. Wrap the failing asynchronous call or component in a try/catch block or React ErrorBoundary.',
+        '3. Check the DevTools Network tab to verify that all API responses return valid 200 JSON with expected headers.',
         '4. Consult the official documentation linked below for reference specifications.'
       ],
-      file_hint: 'src/components/ErrorBoundary.tsx',
+      file_hint: evidence.fileLocation ? `${evidence.fileLocation.file}:${evidence.fileLocation.line || ''}` : null,
       code_before: '// ❌ Unhandled failure:\nconst result = executeOperation();',
       code_after: '// ✅ Fixed: Wrap with ErrorBoundary or try/catch guard\ntry {\n  const result = executeOperation();\n} catch (error) {\n  console.error(\'Safely captured error:\', error);\n}',
-      extra_tips: 'If this is a framework-specific error, please include the framework name (e.g. Next.js 14, React 19, Vue 3) for pinpoint diagnostics.',
+      corrected_code: '// ✅ Fixed: Wrap with ErrorBoundary or try/catch guard\ntry {\n  const result = executeOperation();\n} catch (error) {\n  console.error(\'Safely captured error:\', error);\n}',
+      code_context_note: 'General fallback illustration — adapt to your codebase.',
+      extra_tips: 'To get a more specific diagnosis, please provide the complete stack trace and specify the framework (e.g. React 19, Next.js, Vue 3).',
+      follow_up_question: evidence.focusedFollowUp || 'Can you share the full stack trace or the code where this error occurs?',
       prevention_checklist: [
         'Catch all async promises with try/catch.',
         'Add top-level React ErrorBoundaries to prevent white screens.',
@@ -282,8 +360,21 @@ export class DiagnosticEngine {
         title: 'React Docs — Catching Rendering Errors with Error Boundaries',
         url: 'https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary'
       },
+      sources: [
+        {
+          title: 'React Docs — Catching Rendering Errors with Error Boundaries',
+          url: 'https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary'
+        }
+      ],
       confirmation_prompt: 'Did this general troubleshooting advice help? Please rate below.',
-      redactions_count: redactionsCount
+      redactions_count: redactionsCount,
+      evidence_summary: {
+        input_source: evidence.inputSource,
+        is_browser_captured: evidence.isBrowserCaptured,
+        file_location: evidence.fileLocation,
+        detected_framework: evidence.detectedFramework,
+        confirmed_observations: evidence.observations
+      }
     };
   }
 
@@ -320,7 +411,11 @@ export class DiagnosticEngine {
     const seenCategories = new Set();
 
     for (const err of extractedErrors) {
-      const res = await this.diagnose(err.snippet, false);
+      const res = await this.diagnose(err.snippet, false, null, {
+        stack: err.full_context,
+        errorMessage: err.snippet,
+        source: 'log_file_upload'
+      });
       if (res.matched && !seenCategories.has(res.category)) {
         seenCategories.add(res.category);
         diagnosedIssues.push({

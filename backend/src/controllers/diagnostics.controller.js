@@ -50,7 +50,8 @@ export class DiagnosticsController {
         failedResourceUrl = '',
         browserInfo = '',
         userDescription = '',
-        selectedText = ''
+        selectedText = '',
+        detectedFramework = null
       } = req.body;
 
       // Sanitize URL query parameters and secrets
@@ -61,14 +62,25 @@ export class DiagnosticsController {
       const queryParts = [];
       if (errorMessage) queryParts.push(errorMessage);
       if (promiseRejection) queryParts.push(`Unhandled Rejection: ${promiseRejection}`);
-      if (selectedText) queryParts.push(`Selected Code: ${selectedText}`);
+      if (selectedText) queryParts.push(`Selected Code:\n${selectedText}`);
       if (userDescription) queryParts.push(`User Note: ${userDescription}`);
-      if (stack) queryParts.push(`Stack: ${stack}`);
       if (cleanFailedUrl) queryParts.push(`Failed Resource: ${cleanFailedUrl}`);
 
       const fullQuery = queryParts.join('\n\n').trim();
 
-      const diagnosis = await this.engine.diagnose(fullQuery, true);
+      const context = {
+        stack,
+        errorMessage,
+        promiseRejection,
+        failedResourceUrl: cleanFailedUrl,
+        browserInfo,
+        selectedText,
+        detectedFramework,
+        source: 'extension_capture',
+        isBrowserCaptured: Boolean(errorMessage || promiseRejection || failedResourceUrl)
+      };
+
+      const diagnosis = await this.engine.diagnose(fullQuery, true, null, context);
       const formatted = formatDiagnosticResponse(diagnosis);
 
       return res.json({
@@ -76,7 +88,9 @@ export class DiagnosticsController {
         data: formatted,
         browser_context: {
           url: cleanUrl,
-          browserInfo: browserInfo.slice(0, 200)
+          browserInfo: (browserInfo || '').slice(0, 200),
+          detectedFramework: diagnosis.evidence_summary?.detected_framework || 'Unknown',
+          fileLocation: diagnosis.evidence_summary?.file_location || null
         }
       });
     } catch (error) {

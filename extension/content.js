@@ -16,6 +16,24 @@ try {
   // Silent fallback if CSP disallows script injection
 }
 
+function detectPageFramework() {
+  if (document.querySelector('#__next') || window.__NEXT_DATA__) return 'Next.js';
+  if (document.querySelector('[data-reactroot]')) return 'React';
+
+  const rootEl = document.querySelector('#root') || document.querySelector('#app') || document.body;
+  if (rootEl) {
+    for (const key of Object.keys(rootEl)) {
+      if (key.startsWith('__reactFiber') || key.startsWith('__reactContainer')) return 'React';
+      if (key.startsWith('__vue')) return 'Vue.js';
+    }
+  }
+
+  if (document.querySelector('[ng-version], [data-ng-app]')) return 'Angular';
+  if (document.querySelector('[class*="svelte-"]')) return 'Svelte';
+
+  return 'Unknown / Generic JavaScript';
+}
+
 // Listen for messages from injected.js
 window.addEventListener('message', function(event) {
   if (event.source !== window || !event.data || event.data.source !== 'FRONTFIX_PAGE_MONITOR') {
@@ -59,7 +77,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       title: document.title,
       errors: detectedErrors,
       selectedText,
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent,
+      detectedFramework: detectPageFramework()
     });
     return true;
   }

@@ -117,6 +117,8 @@ async function fetchActivePageDiagnostics() {
   const countBadge = document.getElementById('error-count-badge');
   const listEl = document.getElementById('detected-errors-list');
   const selectionBanner = document.getElementById('selection-banner');
+  const frameworkBadge = document.getElementById('detected-framework-badge');
+  const previewText = document.getElementById('evidence-preview-text');
 
   if (!chrome.tabs || !chrome.tabs.query) {
     if (urlEl) urlEl.textContent = 'Browser tabs API unavailable in this environment.';
@@ -143,12 +145,17 @@ async function fetchActivePageDiagnostics() {
     chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_DIAGNOSTICS' }, (response) => {
       if (chrome.runtime.lastError || !response) {
         if (listEl) {
-          listEl.innerHTML = '<div class="empty-state">No errors reported on page, or page is a restricted browser tab.</div>';
+          listEl.innerHTML = '<div class="empty-state">No runtime errors captured on this tab, or page is a restricted browser tab.</div>';
         }
+        if (frameworkBadge) frameworkBadge.textContent = 'Unavailable (Restricted Tab)';
         return;
       }
 
       activePageData = response;
+
+      if (frameworkBadge) {
+        frameworkBadge.textContent = response.detectedFramework || 'Generic JavaScript';
+      }
 
       if (response.selectedText && selectionBanner) {
         selectionBanner.classList.remove('hidden');
@@ -157,17 +164,28 @@ async function fetchActivePageDiagnostics() {
       const errors = response.errors || [];
       if (countBadge) countBadge.textContent = String(errors.length);
 
+      if (previewText) {
+        const jsErrors = errors.filter(e => e.type === 'javascript_error').length;
+        const rejections = errors.filter(e => e.type === 'unhandled_promise_rejection').length;
+        const resources = errors.filter(e => e.type === 'resource_load_error').length;
+        previewText.textContent = `Captured: ${jsErrors} JS Error(s), ${rejections} Promise Rejection(s), ${resources} Resource Failure(s). Framework: ${response.detectedFramework || 'Generic JS'}. Form values and passwords are never read or sent.`;
+      }
+
       if (listEl) {
         if (errors.length === 0) {
-          listEl.innerHTML = '<div class="empty-state">No runtime errors detected on this tab. Click Analyze to inspect page context.</div>';
+          listEl.innerHTML = '<div class="empty-state">No runtime errors captured on this tab. Click "Analyze Captured Evidence" to inspect page context.</div>';
         } else {
           listEl.innerHTML = '';
-          errors.forEach((err, idx) => {
+          errors.forEach((err) => {
             const div = document.createElement('div');
             div.className = 'error-item';
+
+            const categoryTag = err.category || (err.type === 'resource_load_error' ? 'Resource Error' : 'Runtime Error');
+            const sourceInfo = err.filename ? ` &bull; ${escapeHtml(err.filename.split('/').pop())}${err.lineno ? `:${err.lineno}` : ''}` : '';
+
             div.innerHTML = `
               <div class="error-item-msg">${escapeHtml(err.message)}</div>
-              <div class="error-item-meta">${err.type} &bull; ${new Date(err.timestamp).toLocaleTimeString()}</div>
+              <div class="error-item-meta">${categoryTag}${sourceInfo} &bull; ${new Date(err.timestamp).toLocaleTimeString()}</div>
             `;
             listEl.appendChild(div);
           });
@@ -242,6 +260,7 @@ async function handleAnalyzePage() {
   const errors = activePageData?.errors || [];
   const selectedText = activePageData?.selectedText || '';
   const pageUrl = activePageData?.url || '';
+  const detectedFramework = activePageData?.detectedFramework || null;
 
   let topError = errors.length > 0 ? errors[errors.length - 1] : null;
 
@@ -254,10 +273,11 @@ async function handleAnalyzePage() {
     failedResourceUrl: topError && topError.resourceUrl ? topError.resourceUrl : '',
     browserInfo: navigator.userAgent,
     selectedText: selectedText,
-    userDescription: errors.length === 0 ? `Diagnose page context for ${pageUrl}` : ''
+    detectedFramework: detectedFramework,
+    userDescription: errors.length === 0 ? `Inspect page diagnostics for ${pageUrl}` : ''
   };
 
-  showLoader(true, 'Consulting FrontFix AI...');
+  showLoader(true, 'Consulting FrontFix AI with captured evidence...');
 
   try {
     const res = await fetch(`${currentBackendUrl}/api/extension/diagnose`, {
@@ -281,14 +301,15 @@ async function handleAnalyzePage() {
 }
 
 async function sendDiagnoseQuery(query) {
-  showLoader(true, 'Diagnosing frontend issue...');
+  showLoader(true, 'Diagnosing frontend issue based on supplied input...');
   try {
     const res = await fetch(`${currentBackendUrl}/api/diagnose`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: query,
-        enable_privacy: true
+        enable_privacy: true,
+        source: 'user_pasted'
       })
     });
 
@@ -319,9 +340,21 @@ function renderDiagnosis(diag) {
   const stepsList = document.getElementById('diag-fix-steps');
   const codeContainer = document.getElementById('diag-code-container');
   const codeAfter = document.getElementById('diag-code-after');
+  const codeNote = document.getElementById('diag-code-note');
   const extraTipsEl = document.getElementById('diag-extra-tips');
   const sourceLink = document.getElementById('diag-source-link');
   const feedbackMsg = document.getElementById('feedback-msg');
+
+  // Evidence elements
+  const inputSourceEl = document.getElementById('diag-input-source');
+  const frameworkEl = document.getElementById('diag-framework');
+  const fileRow = document.getElementById('diag-file-row');
+  const fileLocEl = document.getElementById('diag-file-loc');
+  const obsList = document.getElementById('diag-observations-list');
+
+  // Follow-up question box
+  const followupBox = document.getElementById('diag-followup-box');
+  const followupText = document.getElementById('diag-followup-text');
 
   if (feedbackMsg) feedbackMsg.textContent = '';
 
@@ -329,12 +362,42 @@ function renderDiagnosis(diag) {
   if (modelLabelEl) modelLabelEl.textContent = diag.model_label || '📚 Knowledge Base';
 
   if (confidenceEl) {
-    const score = diag.confidence_score !== undefined ? diag.confidence_score : 100;
-    confidenceEl.textContent = `Confidence: ${diag.confidence || (score > 20 ? 'High' : 'Medium')}`;
+    const conf = diag.confidence || (diag.confidence_score > 20 ? 'high' : 'medium');
+    confidenceEl.textContent = `Confidence: ${conf.toUpperCase()}`;
+    confidenceEl.className = `confidence-badge conf-${conf}`;
+  }
+
+  // Populate Evidence panel
+  const evidence = diag.evidence_summary || {};
+  if (inputSourceEl) inputSourceEl.textContent = evidence.input_source || 'User input';
+  if (frameworkEl) frameworkEl.textContent = evidence.detected_framework || 'Unknown / Generic JavaScript';
+
+  if (fileRow && fileLocEl) {
+    if (evidence.file_location) {
+      const loc = evidence.file_location;
+      fileLocEl.textContent = `${loc.file}${loc.line ? ` (line ${loc.line})` : ''}`;
+      fileRow.classList.remove('hidden');
+    } else {
+      fileRow.classList.add('hidden');
+    }
+  }
+
+  if (obsList) {
+    obsList.innerHTML = '';
+    const obs = evidence.confirmed_observations || [];
+    obs.forEach(o => {
+      const li = document.createElement('li');
+      li.textContent = o;
+      obsList.appendChild(li);
+    });
   }
 
   if (problemEl) problemEl.textContent = diag.problem || '';
-  if (likelyCauseEl) likelyCauseEl.textContent = diag.likely_cause || '';
+
+  // Render likely causes (splits on newlines if ranked)
+  if (likelyCauseEl) {
+    likelyCauseEl.textContent = diag.likely_cause || '';
+  }
 
   if (stepsList) {
     stepsList.innerHTML = '';
@@ -346,10 +409,30 @@ function renderDiagnosis(diag) {
     });
   }
 
+  // Follow-up question callout
+  if (followupBox && followupText) {
+    if (diag.follow_up_question) {
+      followupText.textContent = diag.follow_up_question;
+      followupBox.classList.remove('hidden');
+    } else {
+      followupBox.classList.add('hidden');
+    }
+  }
+
+  // Code block with literal text rendering (prevents JSX tag parsing issues)
+  const codeToDisplay = diag.corrected_code || diag.code_after || '';
   if (codeContainer && codeAfter) {
-    if (diag.code_after) {
-      codeAfter.textContent = diag.code_after;
+    if (codeToDisplay) {
+      codeAfter.textContent = codeToDisplay; // textContent renders literal JSX without escaping bugs
       codeContainer.classList.remove('hidden');
+      if (codeNote) {
+        if (diag.code_context_note) {
+          codeNote.textContent = diag.code_context_note;
+          codeNote.classList.remove('hidden');
+        } else {
+          codeNote.classList.add('hidden');
+        }
+      }
     } else {
       codeContainer.classList.add('hidden');
     }
@@ -360,9 +443,10 @@ function renderDiagnosis(diag) {
   }
 
   if (sourceLink) {
-    if (diag.source && diag.source.url) {
-      sourceLink.href = diag.source.url;
-      sourceLink.textContent = diag.source.title || 'Official Documentation';
+    const primarySource = (diag.sources && diag.sources.length > 0) ? diag.sources[0] : diag.source;
+    if (primarySource && primarySource.url) {
+      sourceLink.href = primarySource.url;
+      sourceLink.textContent = primarySource.title || 'Official Documentation';
     } else {
       sourceLink.href = 'https://developer.mozilla.org';
       sourceLink.textContent = 'MDN Web Docs';
