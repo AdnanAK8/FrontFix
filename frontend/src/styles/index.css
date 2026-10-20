@@ -405,7 +405,7 @@ html, body {
   max-width: 720px;
   width: 100%;
   margin: auto;
-  padding: 20px 0;
+  padding: 20px 0 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1110,6 +1110,10 @@ html, body {
   .chat-viewport {
     padding: 18px 14px 22px;
   }
+
+  .hero-view {
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1182,7 +1186,7 @@ html, body {
 
   .hero-view {
     margin: 0 auto;
-    padding: 8px 0 18px;
+    padding: 8px 0 24px;
   }
 
   .hero-main-title {
