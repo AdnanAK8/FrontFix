@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrontFix AI — Frontend Debugger</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="extension-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-area">
+        <span class="logo-icon">⚡</span>
+        <div class="logo-text">
+          <h1>FrontFix AI</h1>
+          <span class="subtext">Team B: Frontend Support</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="backend-status" class="status-pill status-offline">Connecting...</span>
+        <button id="toggle-settings-btn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Settings Panel (Collapsible) -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <h3>Backend Configuration</h3>
+      <div class="setting-group">
+        <label for="backend-url-input">API Base URL:</label>
+        <input type="text" id="backend-url-input" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000">
+      </div>
+      <div class="settings-actions">
+        <button id="save-settings-btn" class="btn btn-secondary btn-sm">Save</button>
+        <button id="test-connection-btn" class="btn btn-outline btn-sm">Test</button>
+        <span id="settings-msg" class="settings-msg"></span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="page-diagnostics">Page Errors</button>
+      <button class="tab-btn" data-tab="manual-query">Ask FrontFix</button>
+    </div>
+
+    <!-- Tab 1: Page Diagnostics -->
+    <section id="tab-page-diagnostics" class="tab-content active">
+      <div class="context-card">
+        <div class="context-item">
+          <span class="context-label">Page:</span>
+          <span id="current-page-url" class="context-value" title="Active URL">Loading URL...</span>
+        </div>
+        <div id="selection-banner" class="selection-banner hidden">
+          <span>📝 Text selected on page</span>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <span>Detected Issues</span>
+        <span id="error-count-badge" class="badge">0</span>
+      </div>
+
+      <div id="detected-errors-list" class="errors-list">
+        <div class="empty-state">No runtime errors detected on this tab yet.</div>
+      </div>
+
+      <div class="privacy-box">
+        <label class="privacy-toggle">
+          <input type="checkbox" id="privacy-checkbox" checked>
+          <span>Shield: Redact URLs & scrub sensitive tokens</span>
+        </label>
+        <p class="privacy-note">🔒 Private by default: Form inputs, passwords, and cookies are never collected.</p>
+      </div>
+
+      <div class="action-row">
+        <button id="analyze-page-btn" class="btn btn-primary">🔍 Analyze Current Page</button>
+        <button id="clear-errors-btn" class="btn btn-outline">Clear</button>
+      </div>
+    </section>
+
+    <!-- Tab 2: Manual Query -->
+    <section id="tab-manual-query" class="tab-content">
+      <label for="manual-error-input" class="input-label">Paste Error, Log, or Describe Problem:</label>
+      <textarea id="manual-error-input" placeholder="e.g. TypeError: Cannot read properties of undefined (reading 'map') or CORS policy blocked..."></textarea>
+
+      <div class="action-row">
+        <button id="diagnose-manual-btn" class="btn btn-primary">⚡ Diagnose Error</button>
+      </div>
+    </section>
+
+    <!-- Loader -->
+    <div id="loading-indicator" class="loader-box hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Analyzing with FrontFix AI...</p>
+    </div>
+
+    <!-- Diagnosis Result Container -->
+    <section id="diagnosis-result" class="diagnosis-card hidden">
+      <div class="diagnosis-header">
+        <span id="diag-model-label" class="model-badge">📚 Knowledge Base</span>
+        <span id="diag-confidence" class="confidence-badge">Confidence: High</span>
+      </div>
+
+      <h2 id="diag-title" class="diag-title">Diagnosis Title</h2>
+
+      <div class="diag-section">
+        <h3>1. Problem</h3>
+        <p id="diag-problem"></p>
+      </div>
+
+      <div class="diag-section">
+        <h3>2. Likely Cause</h3>
+        <p id="diag-likely-cause"></p>
+      </div>
+
+      <div class="diag-section">
+        <h3>3. Fix Steps</h3>
+        <ol id="diag-fix-steps" class="steps-list"></ol>
+      </div>
+
+      <div id="diag-code-container" class="code-container hidden">
+        <div class="code-header">
+          <span>Code Correction</span>
+          <button id="copy-code-btn" class="btn-xs">Copy Fix</button>
+        </div>
+        <pre><code id="diag-code-after"></code></pre>
+      </div>
+
+      <div class="diag-section">
+        <h3>4. Extra Tips</h3>
+        <p id="diag-extra-tips"></p>
+      </div>
+
+      <div id="diag-source-container" class="source-box">
+        <span>📖 Official Reference:</span>
+        <a id="diag-source-link" href="#" target="_blank" rel="noopener noreferrer">MDN Docs</a>
+      </div>
+
+      <!-- Feedback Area -->
+      <div class="feedback-area">
+        <span class="feedback-label">Did this fix help?</span>
+        <div class="feedback-buttons">
+          <button id="fb-thumbs-up" class="fb-btn" title="Helpful">👍 Yes</button>
+          <button id="fb-thumbs-down" class="fb-btn" title="Not helpful">👎 No</button>
+        </div>
+        <span id="feedback-msg" class="feedback-msg"></span>
+      </div>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

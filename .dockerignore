@@ -1,10 +1,9 @@
 .git
-.github
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+.gitignore
 .env
-node_modules
-docs
-.pytest_cache
+node_modules/
+backend/node_modules/
+npm-debug.log
+yarn-error.log
+.DS_Store
+Thumbs.db

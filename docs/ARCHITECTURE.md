@@ -1,5 +1,5 @@
 # 🏛️ FrontFix AI — System Architecture Specification
-> **Team B (Frontend Support Chatbot) — Architectural Blueprint & Technical Design**
+> **Team B (Frontend Support) — Node.js & Express Architectural Blueprint**
 
 ---
 
@@ -7,74 +7,74 @@
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Client Presentation Layer (Web Studio)"]
-        UI["Minimalist Web Interface\n(index.html / style.css / app.js)"]
-        ClientScrub["Client Privacy Scrubber\n(JWT, API Key, Password regex)"]
-        OfflineEngine["Offline Knowledge Cache\n(Zero-latency standalone fallback)"]
-        LogUploader["Log File Upload Handler\n(Drag & drop .log/.txt/.json)"]
-        FeedbackBar["Interactive Feedback Widget\n(Thumbs Up / Thumbs Down)"]
+    subgraph Clients ["Client Layer"]
+        WebUI["Web Interface\n(frontend/index.html, app.js)"]
+        BrowserExt["Chrome/Edge Extension (MV3)\n(Active Tab Diagnostics, popup.js)"]
     end
 
-    subgraph Gateway ["FastAPI Gateway & Security (Port 8000)"]
-        Router["FastAPI Application (main.py)"]
-        CORSMiddleware["CORS Middleware (allow_origins=*)"]
-        FileValidator["File Size & Type Guard\n(Max 2MB limit, binary check)"]
-        StaticServer["Static Files Mount (/ui)"]
+    subgraph Gateway ["Node.js & Express Server (Port 8000)"]
+        Server["Express App (src/app.js)"]
+        HelmetMW["Helmet Security Headers"]
+        CorsMW["Configured CORS & Extension Origin Filter"]
+        RateLimiter["Rate Limiter (express-rate-limit)"]
+        MulterGuard["Multer File Guard (Max 2MB, Memory Storage)"]
+        StaticServer["Static Files (/ui)"]
     end
 
-    subgraph CoreEngine ["Diagnostic Reasoning Core (engine.py)"]
-        Sanitizer["Server Privacy Shield\n(Redacts secrets & customer emails)"]
-        VagueDetector["Context-Aware Inquiry Router\n(CSS, React, API specific follow-ups)"]
-        MemoryMgr["Conversation History Resolver\n(Enriches multi-turn context)"]
-        SearchIndex["TF-IDF Search & Token Index\n(Weighted pattern & term matching)"]
+    subgraph Controllers ["Controllers Layer"]
+        ChatCtrl["ChatController (chat.controller.js)"]
+        DiagCtrl["DiagnosticsController (diagnostics.controller.js)"]
+        FeedCtrl["FeedbackController (feedback.controller.js)"]
+    end
+
+    subgraph Services ["Core Services Layer"]
+        Sanitizer["SanitizerService\n(JWT, API Key, Password, Email, URL Scrubbing)"]
+        DiagEngine["DiagnosticEngine\n(Reasoning, Fallbacks & Log Analyzer)"]
+        HistorySvc["HistoryService\n(Context Resolution & Memory Bounding)"]
+        Retriever["KnowledgeRetriever\n(TF-IDF Index & Cosine Ranking)"]
+        LLMSvc["LLMService\n(Google Gemini & OpenAI Grounding)"]
     end
 
     subgraph KnowledgeData ["Canonical Frontend Knowledge Base"]
-        KB32[("knowledge.json\n32 Curated Frontend Issues\nReact, CSS, JS, HTML, API, Console")]
-        DocsLinks["Authoritative Documentation Links\n(React.dev, MDN Web Docs, web.dev)"]
+        KBData[("knowledge.json\n34 Curated Frontend Issues\nReact, CSS, JS, HTML, API, Console")]
+        DocsLinks["Authoritative Links\n(MDN Web Docs, React.dev, web.dev)"]
     end
 
-    subgraph ModelLayer ["AI Model Grounding Layer (llm.py)"]
-        LLMClient["LLMGroundingClient\n(Strict JSON Schema, Grounded Prompt)"]
-        GeminiAPI["Google Gemini REST API\n(gemini-1.5-flash / gemini-2.5)"]
-        OpenAIAPI["OpenAI / Ollama Local API\n(Compatible fallback endpoint)"]
-        DeterministicFallback["Deterministic RAG Synthesis\n(Instant offline guarantee)"]
+    subgraph AIProviders ["AI Providers Layer"]
+        GeminiAPI["Google Gemini SDK / REST\n(gemini-1.5-flash / gemini-2.0)"]
+        OpenAIAPI["OpenAI API / Local Compatible"]
+        CanonicalFallback["Verified Knowledge Fallback\n(Transparent Deterministic Output)"]
     end
 
     subgraph Telemetry ["Session Analytics & Telemetry"]
         FeedbackStore[("In-Memory Feedback Store\n(/api/feedback/stats)")]
     end
 
-    %% Client Interactions
-    UI --> ClientScrub
-    ClientScrub --> Router
-    LogUploader --> FileValidator --> Router
-    FeedbackBar --> Router
-    UI -. Offline Fallback .-> OfflineEngine
+    %% Client Connections
+    WebUI --> CorsMW
+    BrowserExt --> CorsMW
+    CorsMW --> HelmetMW --> RateLimiter --> Server
 
-    %% Backend Interactions
-    Router --> CORSMiddleware
-    Router --> Sanitizer
-    Sanitizer --> VagueDetector
-    VagueDetector -- Insufficient input --> UI
-    VagueDetector -- Specific input --> MemoryMgr
-    MemoryMgr --> SearchIndex
-    KB32 --> SearchIndex
+    %% Server Routing
+    Server --> MulterGuard --> DiagCtrl
+    Server --> ChatCtrl
+    Server --> FeedCtrl
 
-    %% Knowledge & LLM Grounding
-    SearchIndex --> LLMClient
-    KB32 --> LLMClient
-    LLMClient --> GeminiAPI
-    LLMClient --> OpenAIAPI
-    LLMClient -- No API key or timeout --> DeterministicFallback
-    GeminiAPI --> Router
-    OpenAIAPI --> Router
-    DeterministicFallback --> Router
+    %% Controller to Services
+    ChatCtrl --> DiagEngine
+    DiagCtrl --> DiagEngine
+    FeedCtrl --> FeedbackStore
 
-    %% Feedback Loop
-    Router --> FeedbackStore
-    FeedbackStore --> UI
-    Router --> UI
+    DiagEngine --> Sanitizer
+    DiagEngine --> HistorySvc
+    DiagEngine --> Retriever
+    Retriever --> KBData
+    DiagEngine --> LLMSvc
+
+    %% LLM Grounding
+    LLMSvc --> GeminiAPI
+    LLMSvc --> OpenAIAPI
+    LLMSvc -- No key or timeout --> CanonicalFallback
 ```
 
 ---
@@ -85,77 +85,71 @@ flowchart TD
 sequenceDiagram
     autonumber
     actor Dev as Developer / User
-    participant UI as Web Studio
-    participant API as FastAPI Backend
+    participant Ext as Chrome Extension / Web UI
+    participant API as Express Backend (Port 8000)
     participant Engine as Diagnostic Engine
-    participant KB as 32-Issue Knowledge Base
-    participant LLM as Grounded LLM Client
+    participant Retriever as TF-IDF Cosine Retriever
+    participant KB as Canonical Knowledge Base
+    participant LLM as Grounded LLM Service
 
-    Dev->>UI: Pastes error snippet or asks question
-    UI->>UI: Client-side privacy mask (strips Bearer tokens/keys)
-    UI->>API: POST /api/diagnose { query, conversation_history }
+    Dev->>Ext: Clicks "Analyze Current Page" or Pastes Error
+    Ext->>Ext: Client-side privacy preview & URL parameter scrubbing
+    Ext->>API: POST /api/extension/diagnose or /api/diagnose
     
-    API->>Engine: diagnose(query, history)
-    Engine->>Engine: Server-side privacy scrub (sanitizes secrets)
-
-    alt Query is Vague (e.g. "css broken")
-        Engine-->>API: Returns domain-specific follow-up question
-        API-->>UI: Displays contextual follow-up prompt badge
-    else Query is Specific
-        Engine->>Engine: Resolve context with conversation history
-        Engine->>KB: TF-IDF token search & ranking
-        KB-->>Engine: Top canonical match (score & docs)
-
-        alt LLM API Key Configured
-            Engine->>LLM: generate_grounded_response(query, canonical_doc, history)
-            LLM-->>Engine: Structured 4-part JSON response
-        else No LLM Key or Offline
-            Engine->>Engine: Deterministic canonical synthesis
+    API->>API: CORS & Rate limit verification
+    API->>Engine: diagnose(query, enablePrivacy, history)
+    Engine->>Engine: SanitizerService scrubs Bearer tokens, secrets, emails
+    
+    alt Vague or Insufficient Query
+        Engine-->>API: Returns domain-tailored follow-up questions
+        API-->>Ext: Displays follow-up guidance to user
+    else Technical Error Provided
+        Engine->>Retriever: search(enrichedQuery)
+        Retriever->>KB: Vector Cosine dot-product + Trigger boost
+        KB-->>Retriever: Top ranked issue (score >= 12.0)
+        Retriever-->>Engine: Canonical issue details
+        
+        alt Real Gemini/OpenAI API Key Configured
+            Engine->>LLM: generateGroundedResponse(query, canonicalIssue, history)
+            LLM->>LLM: Strict JSON schema validation
+            LLM-->>Engine: Synthesized 4-part diagnosis (Problem, Cause, Steps, Tips)
+        else Offline / Key Not Configured / API Failure
+            Engine->>Engine: Transparently fallback to canonical issue data
         end
-
-        Engine-->>API: Complete 4-part response + code diff + doc link
-        API-->>UI: Renders Diagnostic Card (Problem, Cause, Steps, Tips)
+        
+        Engine-->>API: Structured diagnosis payload
+        API-->>Ext: JSON response (Problem, Cause, Steps, Tips, Code Diff, Docs Link)
+        Ext-->>Dev: Displays 4-part diagnosis card with Copy buttons
     end
 
-    Dev->>UI: Reviews numbered steps & copies code diff
-    Dev->>UI: Clicks 👍 Thumbs Up or 👎 Thumbs Down
-    UI->>API: POST /api/feedback { issue_title, is_helpful }
-    API-->>UI: Feedback logged confirmation toast
+    Dev->>Ext: Clicks 👍 or 👎 Feedback
+    Ext->>API: POST /api/feedback { is_helpful, issue_title }
+    API->>API: In-memory feedback store updated
 ```
 
 ---
 
-## 3. Core Component Specifications
+## 3. Component Breakdown
 
-### 3.1. Client & Ingestion Layer
-- **Conversational Web Studio**: Clean single-column layout with dark mode, high-contrast syntax blocks, and before/after code diffs.
-- **Client Privacy Shield**: Regular expression scrubbers mask JWTs, API keys, and passwords before network dispatch.
-- **Log File Ingestion**: Drag-and-drop or file picker for `.log`, `.txt`, `.json` files.
-- **Offline Resilience**: Standalone fallback index allows full local diagnostics even when the FastAPI backend is disconnected.
+### A. Web Presentation (`frontend/`)
+- Pure vanilla ES6 JavaScript with native Web APIs (`fetch`, `FileReader`, `Clipboard`).
+- Dual online/offline mode: when the Node.js API is reachable, queries are routed through the backend engine; when offline, a local browser cache handles baseline queries.
+- Zero bulky external frameworks (React/Vue/Angular omitted from UI bundle following the ponytail philosophy).
 
-### 3.2. Diagnostic & Search Engine (`backend/app/engine.py`)
-- **Weighted TF-IDF Scoring**: Tokenizes triggers (5x weight), title (3x weight), category (2x weight), problem, and cause.
-- **Context-Aware Follow-Up Engine**: Intelligently inspects ambiguous queries (CSS, React, API, HTML) to prompt tailored questions.
-- **Multi-Turn Conversation Memory**: Resolves contextual follow-ups ("how do I do step 2 in TypeScript?") by inspecting prior message history.
-- **Log Parsing & Diagnostics**: Sanitizes uploaded logs, extracts stack traces and HTTP error codes, and maps them to verified fixes.
+### B. Chrome/Edge Extension (`extension/`)
+- Manifest V3 architecture (`activeTab`, `scripting`, `storage` permissions).
+- **In-Page Monitor (`injected.js`)**: Runs in the host page context to intercept uncaught errors (`window.addEventListener('error')`), unhandled promise rejections (`unhandledrejection`), and failed resource fetches (`<script>`, `<link>`, `<img>`).
+- **Content Script (`content.js`)**: Bridges messages between page monitor and extension popup, captures user-selected text on demand, and maintains an in-memory ring buffer (max 20 errors).
+- **Popup Interface (`popup.html`, `popup.js`, `popup.css`)**: Shows active tab URL, preview of detected errors, privacy toggles, "Analyze Current Page" trigger, manual error paste input, 4-part diagnosis cards, code diffs, and thumbs up/down feedback.
+- **Privacy First**: Never captures form inputs, passwords, or cookies. Automatically redacts query parameters and tokens from URLs.
 
-### 3.3. Grounded LLM Layer (`backend/app/llm.py`)
-- **Knowledge-Grounded Generation**: Restricts the model to canonical facts retrieved from the 32-issue database.
-- **Zero Destructive Command Policy**: System prompts strictly forbid suggesting commands like `rm -rf`, `DROP TABLE`, or `del /f`.
-- **Dual Mode Flexibility**: Connects to Google Gemini or OpenAI-compatible APIs when keys are present, falling back instantly to deterministic RAG when offline.
-
-### 3.4. Canonical Knowledge Base (`backend/app/knowledge.json`)
-- **32 Curated Frontend Issues**: Covers JavaScript/TypeScript, React 19/SSR hooks, CSS layout & centering, HTML/a11y, API integration/CORS, and browser console warnings.
-- **Authoritative Anchors**: Every entry links to official documentation from **MDN Web Docs**, **React.dev**, and **web.dev**.
-
----
-
-## 4. Performance & Reliability Metrics
-
-| Metric | Target Specification | Measured Result |
-| :--- | :--- | :--- |
-| **Search Retrieval Latency** | < 10 ms | **1.2 ms** (in-memory token index) |
-| **Deterministic Fallback** | Instantaneous | **< 2 ms** |
-| **Max Log Upload Size** | 2 MB | **Enforced (HTTP 413 on overflow)** |
-| **Secret Leakage Rate** | 0.0% | **100% Redacted across client and server** |
-| **Test Suite Coverage** | >= 20 real cases | **29 passing automated test cases** |
+### C. Node.js & Express Backend (`backend/`)
+- **Runtime**: Node.js LTS (ES Modules).
+- **Security**: Helmet HTTP headers, strict CORS configuration supporting both web origins and `chrome-extension://*` IDs, rate limiting (60 req/min for diagnostics, 20 req/min for uploads).
+- **Log File Ingestion**: Multer memory storage with 2MB hard limit (HTTP 413) and binary null-byte detection.
+- **Knowledge Retrieval Engine**: True TF-IDF vector space model with smoothed inverse document frequency:
+  $$\text{IDF}(t) = \ln\left(\frac{N + 1}{\text{DF}(t) + 1}\right) + 1.0$$
+  $$\text{TF}(t, d) = \frac{\text{count}(t, d)}{\sum_{t'} \text{count}(t', d)}$$
+  $$\text{CosineSim}(Q, D) = \frac{\vec{Q} \cdot \vec{D}}{\|\vec{Q}\| \|\vec{D}\|}$$
+- **LLM Grounding Service**: Google Gemini 1.5 Flash SDK (`@google/generative-ai`) and OpenAI compatibility, with placeholder key detection, strict JSON schema validation, timeout protection, and automatic fallback.
+- **In-Memory Telemetry**: Non-blocking feedback storage accessible via `GET /api/feedback/stats`.

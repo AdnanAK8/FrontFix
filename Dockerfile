@@ -1,25 +1,30 @@
-# FrontFix AI — Containerfile (Team B)
-# ponytail: Clean multi-layer Python slim container serving API + UI in single process
-FROM python:3.11-slim
+# FrontFix AI — Containerfile (Team B: Frontend Support)
+# Clean Node.js LTS container serving API + UI in single process
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+# Set production environment variables
+ENV NODE_ENV=production \
+    PORT=8000 \
+    HOST=0.0.0.0
 
-# Copy dependency definition
-COPY backend/requirements.txt /app/backend/requirements.txt
+# Copy dependency manifests
+COPY backend/package*.json ./backend/
 
-# Install python dependencies
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+# Install dependencies
+RUN cd backend && npm install --omit=dev
 
-# Copy backend and frontend source
-COPY backend /app/backend
-COPY frontend /app/frontend
+# Copy backend source and frontend assets
+COPY backend ./backend
+COPY frontend ./frontend
 
 EXPOSE 8000
 
+# Health check against Node.js health endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8000/ || exit 1
+
 WORKDIR /app/backend
 
-CMD ["python", "run.py"]
+CMD ["node", "src/server.js"]

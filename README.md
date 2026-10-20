@@ -1,197 +1,226 @@
 # ⚡ FrontFix AI — Technical Issue Resolution Chatbot
-> **Team B: Frontend Support Chatbot**  
+> **Team B: Frontend Support Chatbot & Browser Debugger**  
 > *AI-Powered Diagnostics, Root-Cause Analysis & Step-by-Step Fixes for Web Developers*
 
 [![Team](https://img.shields.io/badge/Team-Team_B_(Frontend)-0284c7?style=for-the-badge&logo=react)](https://github.com/AdnanAK8/FrontFix)
-[![Knowledge Base](https://img.shields.io/badge/Knowledge_Base-32_Canonical_Issues-10b981?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
+[![Knowledge Base](https://img.shields.io/badge/Knowledge_Base-34_Canonical_Issues-10b981?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
 [![AI Grounding](https://img.shields.io/badge/AI_Model-Gemini_1.5_Flash-4285f4?style=for-the-badge&logo=google)](https://github.com/AdnanAK8/FrontFix)
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI_0.135-009688?style=for-the-badge&logo=fastapi)](https://github.com/AdnanAK8/FrontFix)
-[![Docker](https://img.shields.io/badge/Deployment-Docker_Compose-2496ed?style=for-the-badge&logo=docker)](https://github.com/AdnanAK8/FrontFix)
-[![Tests](https://img.shields.io/badge/Tests-40_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
+[![Backend](https://img.shields.io/badge/Backend-Node.js_&_Express-339933?style=for-the-badge&logo=nodedotjs)](https://github.com/AdnanAK8/FrontFix)
+[![Extension](https://img.shields.io/badge/Extension-Manifest_V3-f59e0b?style=for-the-badge&logo=googlechrome)](https://github.com/AdnanAK8/FrontFix)
+[![Tests](https://img.shields.io/badge/Tests-93_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
 
 ---
 
 ## 📌 1. Project Overview
 
-Developers lose significant time searching the web for frontend errors. **FrontFix AI** functions as an automated senior technical support engineer: it understands frontend errors, performs genuine **TF-IDF Cosine Similarity Search** across a verified 32-issue canonical knowledge base, and utilizes **Google Gemini** to synthesize clear, step-by-step fix instructions.
+Developers lose significant time searching the web for frontend errors. **FrontFix AI** functions like an experienced senior technical support engineer: it understands JavaScript exceptions, React lifecycle issues, CSS layout traps, and network failures, retrieves canonical troubleshooting solutions using true **TF-IDF Cosine Similarity Search** across 34 verified frontend issues, and grounds **Google Gemini** to synthesize clear, step-by-step fix instructions.
 
-### Intended Diagnostic Flow:
-1. **Developer enters error or code**: Pastes a stack trace, console error, or asks a technical question.
-2. **FastAPI receives & sanitizes**: Real-time regex masks strip Bearer JWT tokens, API keys, passwords, and emails.
-3. **True TF-IDF Cosine Search**: Computes token term frequency & inverse document frequency vectors, retrieving canonical fixes.
-4. **Gemini Explains Retrieved Information**: Gemini receives the user's error and retrieved canonical issue details to generate the explanation.
-5. **Structured Answer + Source Links + Feedback**: Produces the required 4-part response (Problem, Likely cause, Fix steps, Extra tips) with official documentation links and thumbs up/down rating.
-6. **Transparent Provenance**: Responses are clearly labelled as `✨ AI Explained (Gemini)` or `📚 Verified Knowledge Base` (when offline or fallback).
+FrontFix AI provides two integrated interfaces:
+1. **Interactive Web Chatbot (`frontend/`)**: Paste console logs, error messages, or upload a log file.
+2. **Chrome/Edge Extension (`extension/`)**: Runs alongside any website being debugged in real-time, inspects uncaught errors on the active tab, and offers one-click AI diagnosis with privacy protection.
 
 ---
 
-## 🎯 2. Five Critical Fixes & Improvements
+## 🏛️ 2. System Architecture
 
-| Area | Implementation & Resolution Detail |
-| :--- | :--- |
-| **1. Real AI Model Grounding** | Integrated Google Gemini 1.5 Flash in `backend/app/llm.py`. Injects retrieved canonical knowledge into the prompt so Gemini explains the exact problem and fix steps. If the API is unreachable, it returns a transparently labelled knowledge-base answer (`generated_by: "knowledge_base"`). |
-| **2. Deployed Frontend API URL** | Added `resolveBackendUrl()` in `frontend/app.js` using `FRONTFIX_CONFIG`. Supports local development on `127.0.0.1:8000`, single-container Docker mounts via `window.location.origin`, and deployed HTTPS API endpoints (Render/Vercel) without hardcoding localhost for external classmates. |
-| **3. Production-Safe CORS** | Replaced wildcard credentials with an explicit origin whitelist (`http://127.0.0.1:8000`, `http://localhost:8000`, `http://localhost:5173`, etc.) and `allow_credentials=False` in `backend/app/main.py`. Configurable via `ALLOWED_ORIGINS` in `.env`. |
-| **4. Log Upload Privacy & Hardening** | In `backend/app/engine.py`, the entire log file is sanitized with regex masks **before** error extraction. Analyzes only sanitized lines, enforces a strict **2MB upload limit** (HTTP 413), blocks binary executables, and returns sanitized snippets with zero token leakage. |
-| **5. Corrected React `.map()` Fix** | Updated `typeerror_map` in both `backend/app/knowledge.json` and `frontend/app.js` to properly decouple `loading`, `error`, and empty array (`items.length === 0`) states instead of trapping the UI in permanent loading. |
-| **A. True TF-IDF Cosine Search** | Built mathematical TF-IDF vectorization with inverse document frequency $IDF = \ln((N+1)/(DF+1)) + 1$ and cosine similarity $\cos(\vec{Q}, \vec{D})$ across all 32 knowledge base articles. |
-| **B. Real Multi-Turn Memory** | The engine inspects `conversation_history`. When a user asks follow-up questions (e.g. *"What should I check next?"* or *"How do I fix this in TypeScript?"*), the prior diagnosed context is passed into the prompt to generate tailored advice. |
-
----
-
-## 📂 3. Repository Structure
-
-```
-front-fix/
+```text
+FrontFix/
 ├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py            # FastAPI REST endpoints & production CORS
-│   │   ├── engine.py          # TF-IDF cosine search, privacy scrubber & log parser
-│   │   ├── llm.py             # Grounded Google Gemini / OpenAI client
-│   │   └── knowledge.json     # 32 curated frontend error resolutions
+│   ├── src/
+│   │   ├── server.js                  # HTTP server entrypoint (0.0.0.0:8000)
+│   │   ├── app.js                     # Express app setup, CORS & Helmet
+│   │   ├── routes/
+│   │   │   ├── health.routes.js       # GET /
+│   │   │   ├── chat.routes.js         # POST /api/diagnose, presets, knowledge
+│   │   │   ├── diagnostics.routes.js  # POST /api/upload-log, /api/extension/diagnose
+│   │   │   └── feedback.routes.js     # POST /api/feedback, GET /api/feedback/stats
+│   │   ├── controllers/
+│   │   │   ├── chat.controller.js
+│   │   │   ├── diagnostics.controller.js
+│   │   │   └── feedback.controller.js
+│   │   ├── services/
+│   │   │   ├── diagnostic-engine.js   # Orchestration & low-confidence fallback
+│   │   │   ├── knowledge-retriever.js # TF-IDF vector index & cosine similarity
+│   │   │   ├── llm.service.js         # Google Gemini & OpenAI grounding client
+│   │   │   ├── history.service.js     # Multi-turn memory & context enrichment
+│   │   │   └── sanitizer.service.js   # Zero-leak regex redaction & URL scrubber
+│   │   ├── middleware/
+│   │   │   ├── error-handler.js       # Centralized sanitized error responses
+│   │   │   ├── rate-limiter.js        # 60 req/min API rate limiting
+│   │   │   └── validate-request.js    # Strict request schema validation
+│   │   ├── config/
+│   │   │   └── env.js                 # Environment config & placeholder key detector
+│   │   └── utils/
+│   │       ├── response-formatter.js  # Canonical 4-part JSON formatter
+│   │       └── generate-icons.js      # Clean PNG icon generator
+│   ├── data/
+│   │   └── knowledge.json             # 34 canonical frontend issues catalog
 │   ├── tests/
-│   │   ├── test_engine.py             # Baseline engine tests (7 tests)
-│   │   └── test_twenty_plus_suite.py  # 33 comprehensive real-world tests
-│   ├── requirements.txt       # Dependencies (fastapi, uvicorn, pydantic, dotenv)
-│   └── run.py                 # Backend launcher (http://127.0.0.1:8000)
+│   │   ├── api-and-security.test.js   # 25 core integration test requirements
+│   │   ├── engine.test.js             # Engine baseline unit tests
+│   │   ├── initial-checklist.test.js  # 25 checklist scenario tests
+│   │   └── twenty-plus-suite.test.js  # 36 real developer questions
+│   ├── package.json
+│   └── package-lock.json
 │
-├── frontend/
-│   ├── index.html             # Conversational interface with presets & upload
-│   ├── style.css              # Minimalist theme (dark mode, calm typography)
-│   ├── app.js                 # Frontend application logic & offline fallback
-│   └── package.json           # Frontend metadata
+├── frontend/                          # Clean vanilla JS Web Chatbot Studio
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+│
+├── extension/                         # Chrome/Edge Browser Extension (Manifest V3)
+│   ├── manifest.json
+│   ├── popup.html
+│   ├── popup.css
+│   ├── popup.js
+│   ├── content.js
+│   ├── injected.js
+│   ├── background.js
+│   └── icons/
 │
 ├── docs/
-│   ├── ARCHITECTURE.md        # Technical architecture specification & diagrams
-│   ├── IMPLEMENTATION_PLAN.md # 6-phase engineering roadmap
-│   ├── RESEARCH_REPORT.md     # Frontend error taxonomy research
-│   ├── TEST_REPORT.md         # Verification report with 40 passing tests
-│   └── PRESENTATION_SLIDES_OUTLINE.md
+│   ├── ARCHITECTURE.md                # Architecture specification & sequence diagrams
+│   └── TEST_REPORT.md                 # 93 passing tests report
 │
-├── Dockerfile                 # Container image specification
-├── docker-compose.yml         # Container deployment configuration
-├── .dockerignore              # Container exclusions
-├── .env.example               # Environment variables template (placeholders only)
-├── run.bat                    # One-click Windows starter
-└── README.md                  # Complete documentation
+├── Dockerfile                         # Node.js 20 Alpine production container
+├── docker-compose.yml                 # One-click container launcher
+├── .env.example                       # Environment configuration template
+├── run.bat                            # Windows one-click starter
+└── README.md
 ```
+
+---
+
+## ⚡ 3. Diagnostic Workflow & Response Contract
+
+Every response strictly follows the required 4-part structure:
+
+```json
+{
+  "problem": "Clear 1-2 sentence description of the problem",
+  "likely_cause": "Detailed technical explanation of why this happens",
+  "fix_steps": [
+    "1. First actionable step...",
+    "2. Second actionable step...",
+    "3. Third actionable step..."
+  ],
+  "extra_tips": "Performance, prevention, or framework specific tips",
+  "sources": [
+    { "title": "MDN Web Docs", "url": "https://developer.mozilla.org/..." }
+  ],
+  "confidence": "high",
+  "follow_up_question": null
+}
+```
+
+### Flow:
+1. **Developer Input**: Pastes an error message, stack trace, or asks a technical question (via Web UI or Browser Extension).
+2. **Privacy Shield**: In-flight regex scrubber redacts Bearer tokens, API keys, credentials, and customer emails.
+3. **Context Enrichment**: Multi-turn history resolves follow-up signals (e.g. *"What should I check next?"* or *"In TypeScript?"*).
+4. **TF-IDF Cosine Search**: Computes token term frequency vectors and matches against 34 canonical issues.
+5. **Grounded AI Generation**: When a genuine Gemini API key is configured, Gemini generates an explanation grounded in the canonical knowledge.
+6. **Transparent Provenance**: Output is labelled as `✨ AI Explained (Gemini)` or `📚 Verified Knowledge Base` (when offline or fallback).
 
 ---
 
 ## 🚀 4. Quick Start Guide
 
-### Step 1: Clone & Configure `.env`
+### Prerequisites
+- **Node.js**: v18.0.0 or higher (Tested on Node.js v24 LTS)
+- **npm**: v9 or higher
+
+### Step 1: Install Dependencies
+```bash
+npm install --prefix backend
+```
+
+### Step 2: Configure Environment
 Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Add your Google Gemini API key if you want live AI explanations (otherwise it runs using the verified knowledge base):
+*(On Windows PowerShell: `Copy-Item .env.example .env`)*
+
+Configure your optional Google Gemini API key in `.env`:
 ```ini
-GEMINI_API_KEY=AIzaSyYourActualKeyHere
+NODE_ENV=development
 PORT=8000
-HOST=127.0.0.1
+HOST=0.0.0.0
+GEMINI_API_KEY=your_actual_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash
+ALLOWED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://localhost:3000,http://localhost:5173,https://adnanak8.github.io
 ```
-*(Note: `.env` is excluded from git via `.gitignore` and is never uploaded).*
+> **Note**: Placeholders like `your_gemini_api_key_here` are automatically recognized as unconfigured, safely running FrontFix in verified canonical knowledge mode without error.
+
+### Step 3: Run the Backend
+```bash
+# Start in production mode
+npm start --prefix backend
+
+# Or start in hot-reload development mode
+npm run dev --prefix backend
+```
+The server will start on **`http://127.0.0.1:8000`**.
+
+### Step 4: Open the Web UI
+- Open `frontend/index.html` in your browser, or visit `http://127.0.0.1:8000/ui` when the backend is running.
+- On Windows, you can double-click **`run.bat`** to start both the backend and frontend with a single click.
 
 ---
 
-### Step 2: Running via Python
+## 🧩 5. Loading the Chrome/Edge Extension
+
+FrontFix includes a Manifest V3 browser extension for live in-browser debugging:
+
+1. Open your browser and navigate to:
+   - **Google Chrome**: `chrome://extensions`
+   - **Microsoft Edge**: `edge://extensions`
+2. Enable **Developer mode** toggle in the top-right corner.
+3. Click **Load unpacked**.
+4. Select the **`extension/`** folder from this repository.
+5. Click the FrontFix AI icon in your browser toolbar to open the debugging popup!
+
+### Extension Features:
+- **Active Page Diagnostics**: Automatically detects uncaught exceptions (`window.onerror`), unhandled promise rejections, and resource load failures on the active tab.
+- **Privacy First**: Explicit user action required (click *"Analyze Current Page"*). Never captures form inputs, passwords, or cookies. Automatically redacts URL query parameters.
+- **Configurable API Endpoint**: Click the ⚙️ icon to set your backend URL (defaults to `http://127.0.0.1:8000`).
+
+---
+
+## 🧪 6. Running Automated Tests
+
+Run the full 93-test automated test suite:
 
 ```bash
-cd backend
-pip install -r requirements.txt
-python run.py
+npm test --prefix backend
 ```
-- **Backend API**: `http://127.0.0.1:8000`
-- **Swagger Docs**: `http://127.0.0.1:8000/docs`
-- **Mounted Web UI**: `http://127.0.0.1:8000/ui`
+
+### Test Coverage Highlights:
+- **25 Required Integration Tests (`api-and-security.test.js`)**: Server startup, health endpoint, valid/empty/invalid requests, schema validation, LLM fallback, oversized log uploads (413), binary upload guards, rate limiting, and CORS.
+- **36 Real-World Frontend Tests (`twenty-plus-suite.test.js`)**: Real developer questions covering `TypeError: .map()`, CORS blocks, div centering, infinite `useEffect` loops, SSR hydration mismatch, z-index stacking, CSS flexbox overflow, missing keys, and localStorage quota errors.
+- **25 Canonical Checklist Tests (`initial-checklist.test.js`)**: Comprehensive checklist testing with exact match verification.
+- **7 Baseline Engine Tests (`engine.test.js`)**: Knowledge base count (>= 30), privacy scrubbing, and log file analyzer.
+
+**Result: 93 passing tests in ~1.2 seconds (0 failures).**
 
 ---
 
-### Step 3: One-Click Windows Launcher
-Double-click `run.bat` in the root folder. It starts the backend API and opens the frontend UI in your browser.
+## 🐳 7. Docker Deployment
 
----
+Deploy the single-container Node.js stack with Docker:
 
-### Step 4: Docker Deployment
-Run the full-stack app with a single command:
 ```bash
 docker compose up --build
 ```
+
 Access the application at `http://localhost:8000/ui`.
 
 ---
 
-## 🧪 5. Running Automated Unit Tests
+## 🔒 8. Security & Privacy Guarantees
 
-Run the full 40-test automated suite verifying the 20+ real developer questions, multi-turn memory, log file size limits, privacy scrubbing, and true TF-IDF ranking:
-
-```bash
-python -m unittest discover -s backend/tests
-```
-
-**Test Output:**
-```text
-Ran 40 tests in 40.064s
-
-OK
-```
-
----
-
-## 📚 6. Curated Knowledge Base (32 Issues Catalog)
-
-| # | Category | Issue Title | Canonical Source |
-|---|:---|:---|:---|
-| 1 | JavaScript & React | TypeError: Cannot read properties of undefined (reading 'map') | MDN Array.map |
-| 2 | API & Network | CORS Policy Blocked: No 'Access-Control-Allow-Origin' Header | MDN CORS |
-| 3 | CSS & Layout | CSS Centering: Div or Modal Not Centered on Screen | MDN Centering |
-| 4 | React & Hooks | Too Many Re-renders: useEffect Runs in an Infinite Loop | React.dev Effects |
-| 5 | React & SSR | React Hydration Mismatch (Server vs Client HTML Mismatch) | React.dev Hydration |
-| 6 | CSS & Layout | CSS Z-Index Stacking Context Trap (Element Renders Behind) | MDN Stacking Context |
-| 7 | CSS & Layout | Flexbox Child Overflowing Container (text-overflow: ellipsis broken) | CSS-Tricks Flexbox |
-| 8 | React & Hooks | Warning: Each child in a list should have a unique 'key' prop | React.dev Lists |
-| 9 | React & Forms | Warning: Component changing uncontrolled input to be controlled | React.dev Inputs |
-| 10 | HTML & Forms | Form Button Reloads Page / Submits on Click | MDN Button |
-| 11 | HTML Structure | HTML Nesting Violation: `<p>` cannot contain `<div>` | MDN Paragraphs |
-| 12 | API & Network | HTTP 404 Not Found on API Fetch or SPA Route Refresh | MDN HTTP 404 |
-| 13 | API & Network | HTTP 500 Internal Server Error & Handling Unhandled Rejections | MDN HTTP 500 |
-| 14 | JavaScript | SyntaxError: Unexpected token '<', '<!DOCTYPE '... is not valid JSON | MDN Response.json |
-| 15 | JavaScript | UnhandledPromiseRejection: Uncaught (in promise) Error | MDN Promises |
-| 16 | React & Hooks | React Hooks Violation: Rendered fewer hooks than expected | React.dev Hooks Rules |
-| 17 | React & Hooks | Stale Closure in useEffect or Event Listener | React.dev Effects |
-| 18 | API & React | Race Condition in Fetch Requests: Out-of-Order API Responses | MDN AbortController |
-| 19 | CSS & Layout | CSS position: sticky Not Working (Element Scrolls Away) | MDN Sticky |
-| 20 | CSS & Layout | Mobile 100vh Layout Jump / Content Cut Off by Browser Address Bar | web.dev Viewport Units |
-| 21 | JavaScript | TypeError: Cannot read properties of null (reading 'property') | MDN Optional Chaining |
-| 22 | JavaScript | TypeError: Assignment to constant variable | MDN const |
-| 23 | JavaScript | NaN (Not-a-Number) in Calculations or UI Displays | MDN Number.isNaN |
-| 24 | React & Memory | Warning: Can't perform a React state update on unmounted component | React.dev Cleanup |
-| 25 | CSS & Layout | CSS Margin Collapse: Unexpected Vertical Gaps | MDN Margin Collapsing |
-| 26 | CSS & Layout | CSS Grid Items Overflowing Container / Not Responsive | MDN Grid Layout |
-| 27 | HTML & a11y | Accessibility Violation: Form Input Missing Associated Label or ARIA | MDN Web Forms |
-| 28 | Core Web Vitals | Cumulative Layout Shift (CLS): Image Jumps on Load | web.dev CLS |
-| 29 | Browser Security | Content Security Policy (CSP) Violation: Blocked Inline Script | MDN CSP |
-| 30 | Browser Security | Mixed Content: Insecure HTTP Request on Secure HTTPS Page | MDN Mixed Content |
-| 31 | Browser Storage | DOMException: QuotaExceededError in localStorage.setItem() | MDN Storage Quota |
-| 32 | API & Network | CORS Error: Access-Control-Allow-Origin Wildcard with Credentials | MDN Credentials |
-
----
-
-## 🔒 7. Safety & Privacy Compliance
-
-- **DLP Privacy Scrubbing**: Client and server side regex masks strip:
-  - Bearer JWT tokens (`Bearer [REDACTED_JWT]`)
-  - API Keys (`[REDACTED_API_KEY]`) including OpenAI `sk-` and Google `AIza...`
-  - Passwords and secrets (`[REDACTED_SECRET]`)
-  - Sensitive emails (`[REDACTED_EMAIL]`)
-- **No Risky Execution**: The chatbot suggests commands and configuration files but never executes destructive shell operations (e.g. `rm -rf`, `DROP TABLE`).
-- **Key Hygiene**: `.env` is strictly excluded from Git; `.env.example` contains placeholders only.
-
----
-
-## 👥 8. Team B Contributors
-- **Project**: AI-Powered Chatbots for Technical Issue Resolution
-- **Track**: Team B (Frontend Support Chatbot)
-- **Author**: Adnan Akhtar ([@AdnanAK8](https://github.com/AdnanAK8/FrontFix))
+1. **Zero Secret Leaks**: Bearer tokens, GitHub/OpenAI/AWS API keys, credentials, and emails are scrubbed before search and LLM submission.
+2. **Log File Security**: 2MB upload hard limit (HTTP 413), binary null-byte rejection, memory storage without disk persistence.
+3. **CORS Hardening**: Strict origin whitelisting supporting web origins and `chrome-extension://*` IDs with `credentials=false`.
+4. **Rate Limiting**: Protects LLM-consuming endpoints against denial-of-service and quota exhaustion.
+5. **Safe Error Handling**: Prevents internal file paths or stack traces from leaking to client responses.

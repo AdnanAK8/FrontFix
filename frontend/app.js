@@ -14,7 +14,12 @@ function resolveBackendUrl() {
     if (window.location.port === '8000') return window.location.origin;
     return FRONTFIX_CONFIG.LOCAL_API_URL;
   }
-  if (window.location.origin.includes('github.io') || window.location.origin.includes('netlify.app')) {
+  // 3. Deployed production environment:
+  // If static hosting (GitHub Pages, Netlify, or Vercel), connect to the production HTTPS API:
+  const isStaticHost = window.location.origin.includes('github.io') ||
+                       window.location.origin.includes('netlify.app') ||
+                       window.location.origin.includes('vercel.app');
+  if (isStaticHost) {
     return FRONTFIX_CONFIG.PROD_API_URL;
   }
   return window.location.origin;
