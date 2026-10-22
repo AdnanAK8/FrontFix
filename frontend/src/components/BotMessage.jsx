@@ -4,6 +4,18 @@ import DiffBlock from './DiffBlock.jsx';
 import FeedbackBar from './FeedbackBar.jsx';
 
 export default function BotMessage({ data, onToast, onReveal }) {
+  if (data.conversational) {
+    return (
+      <div className="chat-bubble-bot conversational-reply">
+        <div className="conversation-avatar" aria-hidden="true">✦</div>
+        <div className="conversation-copy">
+          <div className="conversation-title">{data.title}</div>
+          <p>{data.problem}</p>
+        </div>
+      </div>
+    );
+  }
+
   // Build the list of rows first so each gets a sequential reveal index.
   const rows = [];
 

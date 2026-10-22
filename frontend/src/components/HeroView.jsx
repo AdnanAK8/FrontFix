@@ -9,8 +9,6 @@ export default function HeroView({ onPreset }) {
         <BotIcon />
       </div>
 
-      <div className="hero-pill-badge">Team B: Frontend Support Chatbot</div>
-
       <h1 className="hero-main-title">FrontendFix AI</h1>
 
       <p className="hero-description">

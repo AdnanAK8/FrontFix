@@ -5,7 +5,7 @@
 [![Team](https://img.shields.io/badge/Team-Team_B_(Frontend)-0284c7?style=for-the-badge&logo=react)](https://github.com/AdnanAK8/FrontFix)
 [![Knowledge Base](https://img.shields.io/badge/Knowledge_Base-34_Canonical_Issues-10b981?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
 [![AI Grounding](https://img.shields.io/badge/AI_Model-Gemini_1.5_Flash-4285f4?style=for-the-badge&logo=google)](https://github.com/AdnanAK8/FrontFix)
-[![Backend](https://img.shields.io/badge/Backend-Node.js_&_Express-339933?style=for-the-badge&logo=nodedotjs)](https://github.com/AdnanAK8/FrontFix)
+[![Backend](https://img.shields.io/badge/Backend-Python_&_FastAPI-3776ab?style=for-the-badge&logo=python)](https://github.com/AdnanAK8/FrontFix)
 [![Extension](https://img.shields.io/badge/Extension-Manifest_V3-f59e0b?style=for-the-badge&logo=googlechrome)](https://github.com/AdnanAK8/FrontFix)
 [![Tests](https://img.shields.io/badge/Tests-105_Passing-success?style=for-the-badge)](https://github.com/AdnanAK8/FrontFix)
 
@@ -26,51 +26,44 @@ FrontFix AI provides two integrated interfaces:
 ```text
 FrontFix/
 ├── backend/
-│   ├── src/
-│   │   ├── server.js                  # HTTP server entrypoint (0.0.0.0:8000)
-│   │   ├── app.js                     # Express app setup, CORS & Helmet
+│   ├── main.py                    # Server startup script (Uvicorn launcher)
+│   ├── requirements.txt           # Python dependencies (FastAPI, Uvicorn, etc.)
+│   ├── app/
+│   │   ├── main.py                # FastAPI app setup, routes, static /ui & exception handlers
+│   │   ├── config.py              # Environment configuration & placeholder key detector
 │   │   ├── routes/
-│   │   │   ├── health.routes.js       # GET /
-│   │   │   ├── chat.routes.js         # POST /api/diagnose, presets, knowledge
-│   │   │   ├── diagnostics.routes.js  # POST /api/upload-log, /api/extension/diagnose
-│   │   │   └── feedback.routes.js     # POST /api/feedback, GET /api/feedback/stats
-│   │   ├── controllers/
-│   │   │   ├── chat.controller.js
-│   │   │   ├── diagnostics.controller.js
-│   │   │   └── feedback.controller.js
+│   │   │   ├── health.py          # GET /
+│   │   │   ├── chat.py            # POST /api/diagnose, GET /api/presets, GET /api/knowledge
+│   │   │   ├── diagnostics.py     # POST /api/upload-log, POST /api/extension/diagnose
+│   │   │   └── feedback.py        # POST /api/feedback, GET /api/feedback/stats
 │   │   ├── services/
-│   │   │   ├── diagnostic-engine.js   # Orchestration & low-confidence fallback
-│   │   │   ├── evidence.service.js    # Evidence extraction, stack parsing, framework detection & URL whitelist
-│   │   │   ├── knowledge-retriever.js # TF-IDF vector index & cosine similarity
-│   │   │   ├── llm.service.js         # Google Gemini & OpenAI grounding client
-│   │   │   ├── history.service.js     # Multi-turn memory & context enrichment
-│   │   │   └── sanitizer.service.js   # Zero-leak regex redaction & URL scrubber
+│   │   │   ├── engine.py          # Orchestration, vague queries & fallback logic
+│   │   │   ├── evidence.py        # Stack parsing, framework detection & trusted URL whitelist
+│   │   │   ├── retriever.py       # TF-IDF vector index & cosine similarity engine
+│   │   │   ├── llm.py             # Google Gemini & OpenAI grounding client
+│   │   │   ├── history.py         # Multi-turn memory & context enrichment
+│   │   │   └── sanitizer.py       # Zero-leak regex redaction & URL scrubber
 │   │   ├── middleware/
-│   │   │   ├── error-handler.js       # Centralized sanitized error responses
-│   │   │   ├── rate-limiter.js        # 60 req/min API rate limiting
-│   │   │   └── validate-request.js    # Strict request schema validation
-│   │   ├── config/
-│   │   │   └── env.js                 # Environment config & placeholder key detector
+│   │   │   ├── cors.py            # CORS middleware supporting Web & Browser Extensions
+│   │   │   └── rate_limiter.py    # Sliding window rate limiting with headers
 │   │   └── utils/
-│   │       ├── response-formatter.js  # Canonical 4-part JSON formatter
-│   │       └── generate-icons.js      # Clean PNG icon generator
+│   │       └── formatter.py       # Canonical 4-part JSON formatter
 │   ├── data/
-│   │   └── knowledge.json             # 34 canonical frontend issues catalog
-│   ├── tests/
-│   │   ├── api-and-security.test.js      # 25 core integration test requirements
-│   │   ├── engine.test.js                # Engine baseline unit tests
-│   │   ├── evidence-and-accuracy.test.js # 12 evidence-based diagnostics & accuracy tests
-│   │   ├── initial-checklist.test.js     # 25 checklist scenario tests
-│   │   └── twenty-plus-suite.test.js     # 36 real developer questions
-│   ├── package.json
-│   └── package-lock.json
+│   │   └── knowledge.json         # 34 canonical frontend issues catalog
+│   └── tests/
+│       ├── test_api_and_security.py      # 25 core integration test requirements
+│       ├── test_engine.py                # Engine baseline unit tests
+│       ├── test_evidence_and_accuracy.py # 12 evidence-based diagnostics & accuracy tests
+│       ├── test_initial_checklist.py     # 25 checklist scenario tests
+│       └── test_twenty_plus_suite.py     # 36 real developer questions
 │
-├── frontend/                          # Clean vanilla JS Web Chatbot Studio
+├── frontend/                      # Modern React + Vite Web Chatbot Studio
 │   ├── index.html
-│   ├── style.css
-│   └── app.js
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
 │
-├── extension/                         # Chrome/Edge Browser Extension (Manifest V3)
+├── extension/                     # Chrome/Edge Browser Extension (Manifest V3)
 │   ├── manifest.json
 │   ├── popup.html
 │   ├── popup.css
@@ -80,14 +73,10 @@ FrontFix/
 │   ├── background.js
 │   └── icons/
 │
-├── docs/
-│   ├── ARCHITECTURE.md                # Architecture specification & sequence diagrams
-│   └── TEST_REPORT.md                 # 93 passing tests report
-│
-├── Dockerfile                         # Node.js 20 Alpine production container
-├── docker-compose.yml                 # One-click container launcher
-├── .env.example                       # Environment configuration template
-├── run.bat                            # Windows one-click starter
+├── Dockerfile                     # Multi-stage build (Vite UI + Python FastAPI container)
+├── docker-compose.yml             # One-click container launcher
+├── .env.example                   # Environment configuration template
+├── run.bat                        # Windows one-click starter
 └── README.md
 ```
 
@@ -128,12 +117,18 @@ Every response strictly follows the required 4-part structure:
 ## 🚀 4. Quick Start Guide
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher (Tested on Node.js v24 LTS)
-- **npm**: v9 or higher
+- **Python**: v3.10 or higher (Tested on Python 3.13)
+- **Node.js**: v18.0.0 or higher (for building the React/Vite UI)
 
 ### Step 1: Install Dependencies
 ```bash
-npm install --prefix backend
+# Install Python backend dependencies
+pip install -r backend/requirements.txt
+
+# Install Frontend dependencies
+cd frontend
+npm install
+cd ..
 ```
 
 ### Step 2: Configure Environment
@@ -145,7 +140,7 @@ cp .env.example .env
 
 Configure your optional Google Gemini API key in `.env`:
 ```ini
-NODE_ENV=development
+ENV=development
 PORT=8000
 HOST=0.0.0.0
 GEMINI_API_KEY=your_actual_gemini_api_key_here
@@ -156,19 +151,14 @@ ALLOWED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://localhost:300
 
 ### Step 3: Run the Backend
 ```bash
-# Start in production mode
-npm start --prefix backend
-
-# Or start in hot-reload development mode
-npm run dev --prefix backend
+cd backend
+python main.py
 ```
-The server will start on **`http://127.0.0.1:8000`**.
+The server will start on **`http://127.0.0.1:8000`** with OpenAPI interactive docs at **`http://127.0.0.1:8000/docs`**.
 
 ### Step 4: Run the Frontend UI
 ```bash
-# Start frontend in Vite development mode
 cd frontend
-npm install
 npm run dev
 ```
 - The interactive frontend will start on **`http://localhost:5173`** (or embedded at **`http://127.0.0.1:8000/ui`**).
@@ -197,26 +187,27 @@ FrontFix includes a Manifest V3 browser extension for live in-browser debugging:
 
 ## 🧪 6. Running Automated Tests
 
-Run the full 105-test automated test suite:
+Run the full 105-test automated test suite using `pytest`:
 
 ```bash
-npm test --prefix backend
+cd backend
+pytest tests -v
 ```
 
 ### Test Coverage Highlights:
-- **25 Required Integration Tests (`api-and-security.test.js`)**: Server startup, health endpoint, valid/empty/invalid requests, schema validation, LLM fallback, oversized log uploads (413), binary upload guards, rate limiting, and CORS.
-- **12 Evidence & Accuracy Tests (`evidence-and-accuracy.test.js`)**: Evidence extraction, avoiding unsupported assumptions (generic vs React `.map()`), distinguishing `null` vs `undefined`, empty array vs loading states, strict stack frame validation without invented lines, trusted source domain whitelisting, and literal unescaped JSX diff formatting.
-- **36 Real-World Frontend Tests (`twenty-plus-suite.test.js`)**: Real developer questions covering `TypeError: .map()`, CORS blocks, div centering, infinite `useEffect` loops, SSR hydration mismatch, z-index stacking, CSS flexbox overflow, missing keys, and localStorage quota errors.
-- **25 Canonical Checklist Tests (`initial-checklist.test.js`)**: Comprehensive checklist testing with exact match verification.
-- **7 Baseline Engine Tests (`engine.test.js`)**: Knowledge base count (>= 30), privacy scrubbing, and log file analyzer.
+- **25 Required Integration Tests (`test_api_and_security.py`)**: Server startup, health endpoint, valid/empty/invalid requests, schema validation, LLM fallback, oversized log uploads (413), binary upload guards, rate limiting, and CORS.
+- **12 Evidence & Accuracy Tests (`test_evidence_and_accuracy.py`)**: Evidence extraction, avoiding unsupported assumptions (generic vs React `.map()`), distinguishing `null` vs `undefined`, empty array vs loading states, strict stack frame validation without invented lines, trusted source domain whitelisting, and literal unescaped JSX diff formatting.
+- **36 Real-World Frontend Tests (`test_twenty_plus_suite.py`)**: Real developer questions covering `TypeError: .map()`, CORS blocks, div centering, infinite `useEffect` loops, SSR hydration mismatch, z-index stacking, CSS flexbox overflow, missing keys, and localStorage quota errors.
+- **25 Canonical Checklist Tests (`test_initial_checklist.py`)**: Comprehensive checklist testing with exact match verification.
+- **7 Baseline Engine Tests (`test_engine.py`)**: Knowledge base count (>= 30), privacy scrubbing, and log file analyzer.
 
-**Result: 105 passing tests in ~600ms (0 failures).**
+**Result: 105 passing tests in ~3.3s (0 failures).**
 
 ---
 
 ## 🐳 7. Docker Deployment
 
-Deploy the single-container Node.js stack with Docker:
+Deploy the single-container stack with Docker:
 
 ```bash
 docker compose up --build

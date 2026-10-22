@@ -25,6 +25,13 @@ export default function App() {
         onNewChat={chat.newChat}
         onSelect={chat.selectSession}
       />
+      {sidebar.mobileOpen && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="Close conversation history"
+          onClick={sidebar.closeMobile}
+        />
+      )}
 
       <div className="main-wrapper">
         <Header online={online} onToggleSidebar={sidebar.toggle} onNewChat={chat.newChat} />

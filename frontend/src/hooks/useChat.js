@@ -3,6 +3,7 @@ import { BACKEND_URL } from '../config.js';
 import { PRESET_SAMPLES } from '../data/presets.js';
 import { sanitizeClientSide } from '../utils/sanitize.js';
 import { matchOfflineKnowledge, analyzeLog } from '../utils/diagnose.js';
+import { matchConversationalMessage } from '../utils/conversation.js';
 
 const TYPING_DELAY_MS = 2000;
 const MAX_SESSIONS = 12;
@@ -13,6 +14,7 @@ const TYPING_STATUSES = [
   'Checking the most likely cause...',
   'Putting together clear fix suggestions...',
 ];
+const CONVERSATION_TYPING_STATUSES = ['Putting together a reply...'];
 
 const INITIAL_SESSIONS = [
   {
@@ -74,13 +76,16 @@ export default function useChat({ online, showToast, onReset }) {
 
     setInput('');
     setSending(true);
-    setTypingStatuses(TYPING_STATUSES);
+    const conversationalReply = matchConversationalMessage(query);
+    setTypingStatuses(conversationalReply ? CONVERSATION_TYPING_STATUSES : TYPING_STATUSES);
 
     try {
       await sleep(TYPING_DELAY_MS);
 
       let result = null;
-      if (online) {
+      if (conversationalReply) {
+        result = conversationalReply;
+      } else if (online) {
         try {
           const res = await fetch(`${BACKEND_URL}/api/diagnose`, {
             method: 'POST',
@@ -101,7 +106,7 @@ export default function useChat({ online, showToast, onReset }) {
 
       setTypingStatuses(null);
       addMessage({ type: 'bot', data: result });
-      historyRef.current.push({ role: 'assistant', content: result.title });
+      historyRef.current.push({ role: 'assistant', content: result.title || result.problem });
     } catch {
       setTypingStatuses(null);
       addMessage({ type: 'bot', data: matchOfflineKnowledge(query) });
